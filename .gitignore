@@ -1,0 +1,139 @@
+###########################
+#        default          #
+###########################
+tmp/
+log/*
+demos/
+bin/
+
+###########################
+#        node.js          #
+###########################
+node_modules/*
+config/runtime.json
+
+###########################
+#        vagrant          #
+###########################
+/.vagrant/machines
+
+###########################
+#        SVN              #
+###########################
+.svn/
+*/.svn/
+
+###########################
+#          CVS            #
+###########################
+/CVS/*
+*/CVS/*
+.cvsignore
+*/.cvsignore
+
+###########################
+#       Mercurial         #
+###########################
+/.hg/*
+*/.hg/*
+.hgignore
+
+###########################
+#        Archives         #
+###########################
+# It's better to unpack these files and commit the raw source because
+# git has its own built in compression methods.
+*.7z
+*.jar
+*.rar
+*.zip
+*.gz
+*.bzip
+*.bz2
+*.xz
+*.lzma
+#packing-only formats
+*.iso
+*.tar
+#package management formats
+*.dmg
+*.xpi
+*.gem
+*.egg
+*.deb
+*.rpm
+
+###########################
+# PHPStorm / IntelliJ     #
+###########################
+*.iml
+*.ipr
+*.iws
+.idea
+atlassian-ide-plugin.xml
+
+###########################
+#       SublimeText       #
+###########################
+*.sublime-workspace
+
+###########################
+#         TextMate        #
+###########################
+*.tmproj
+*.tmproject
+tmtags
+
+###########################
+#          VIM            #
+###########################
+.*.sw[a-z]
+*.un~
+Session.vim
+.netrwhist
+
+###########################
+#       nodejs            #
+###########################
+lib-cov
+*.seed
+*.log
+*.dat
+*.out
+*.pid
+pids
+logs
+results
+npm-debug.log
+
+###########################
+#          OSX            #
+###########################
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+# Thumbnails
+._*
+# Files that might appear on external disk
+.Spotlight-V*
+.Trashes
+
+###########################
+#          Unix           #
+###########################
+*~
+
+###########################
+#        Windows          #
+###########################
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+# Folder config file
+Desktop.ini
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+report/*
+public/*
