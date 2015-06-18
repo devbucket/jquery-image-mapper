@@ -9,7 +9,7 @@ bin/
 ###########################
 #        node.js          #
 ###########################
-node_modules/*
+node_modules
 config/runtime.json
 
 ###########################

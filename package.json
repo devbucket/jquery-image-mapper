@@ -1,0 +1,27 @@
+{
+  "name": "jquery-image-mapper",
+  "title": "jQuery Image Mapper",
+  "version": "1.0.0",
+  "description": "HTML5 draw Image Maps the old fashioned way!",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devbucket/jquery-image-mapper.git"
+  },
+  "keywords": [
+    "jQuery",
+    "jquery-plugin",
+    "imagemap",
+    "html5"
+  ],
+  "author": "Florian Mueller",
+  "license": "GPL",
+  "bugs": {
+    "url": "https://github.com/devbucket/jquery-image-mapper/issues"
+  },
+  "homepage": "https://github.com/devbucket/jquery-image-mapper",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-uglify": "^0.9.1",
+    "load-grunt-tasks": "^3.2.0"
+  }
+}
