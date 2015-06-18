@@ -2,7 +2,7 @@
   "name": "jquery-image-mapper",
   "title": "jQuery Image Mapper",
   "version": "1.0.0",
-  "description": "HTML5 draw Image Maps the old fashioned way!",
+  "description": "Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.",
   "repository": {
     "type": "git",
     "url": "https://github.com/devbucket/jquery-image-mapper.git"
@@ -21,7 +21,9 @@
   "homepage": "https://github.com/devbucket/jquery-image-mapper",
   "devDependencies": {
     "grunt": "^0.4.5",
+    "grunt-contrib-concat": "^0.5.1",
     "grunt-contrib-uglify": "^0.9.1",
+    "grunt-contrib-watch": "^0.6.1",
     "load-grunt-tasks": "^3.2.0"
   }
 }
