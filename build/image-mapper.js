@@ -6,10 +6,17 @@
 		options: {
 			handleCollision: true,
 			collisionTolerance: 1,
+			autoHideHandles: true,
+			elementClass: 'ui-image-mapper',
+			elementDisabledClass: 'ui-image-mapper-disabled',
 			mapItemsListPercentage: false,
-			mapItemClass: 'ui-map-item',
 			drawHelperClass: 'ui-image-mapper-helper',
-			zIndex: 100,
+			drawHelperMinWidth: 20,
+			drawHelperMinHeight: 20,
+			drawHelperContainerClass: 'ui-image-mapper-maps',
+			objectTypes: 'div',
+			zIndex: 10,
+			zIndexActive: 150,
 			revertDuration: 100,
 			borderDrawSize: '1px',
 			borderDrawStyle: 'dotted',
@@ -39,26 +46,33 @@
 		 * @private
 		 */
         _init: function () {
-			// Set up the plugin
-			this.mapItems = [];
-			this.dragged = true;
-			this._mouseInit();
+			var self = this;
 
-			// Style the draw element.
-            this.element
-				.addClass('ui-image-mapper')
+			self.elementTag = '<' + self.options.objectTypes + '/>';
+
+			// Set up the plugin
+			self.mapItems = [];
+			self.dragged = true;
+			self.active = null;
+			self._mouseInit();
+
+			// Style the element.
+			self.element
+				.addClass(self.options.elementClass)
 				.css({
 					'position': 'absolute'
 				});
 
-			// Create the helper
-            this.helper = $('<div/>')
-                .addClass('ui-image-mapper-helper')
-				.addClass('drag');
+			// Set the image position relative.
+			$(self.element).find('img').css({
+				'position': 'relative',
+				'z-index': 1,
+				'pointer-events': 'none'
+			});
 
 			// Create the maps container
-            this.container = $('<div/>')
-                .addClass('ui-image-mapper-maps')
+			self.container = $(self.elementTag)
+                .addClass(this.options.drawHelperContainerClass)
 				.css({
 					'position': 'absolute',
 					'z-index': 2,
@@ -68,20 +82,58 @@
 					'height': '100%',
 					'overflow': 'hidden'
 				})
-				.appendTo($(this.element));
+				.appendTo($(self.element));
 
-			// Set the image position relative.
-			$(this.element).find('img').css({
-				'position': 'relative',
-				'z-index': 1
+			// Create the helper
+			self.helper = $(self.elementTag)
+				.addClass(self.options.drawHelperClass)
+				.addClass('drag');
+
+			// Delete the active helper on pressing delete or back key
+			$('html').keyup(function (event) {
+				if (event.keyCode === 8 || event.keyCode === 46) {
+					self._deleteActive(event);
+				}
 			});
-        },
+		},
+
+		/**
+		 * Retrieve all items
+		 */
+		items: function () {
+			return this.mapItems;
+		},
 
 		/**
 		 * Destroy the plugin.
 		 */
         destroy: function () {
-            this.element.removeClass('ui-image-mapper ui-image-mapper-disabled');
+			var $img = this.element.find('img');
+
+            this.element
+				.removeClass(this.options.elementClass + ' ' + this.options.elementDisabledClass)
+				.css({ 'position': '' });
+
+			if ('' == this.element.attr('style')) {
+				this.element.removeAttr('style');
+			}
+
+			if ('' == this.element.attr('class')) {
+				this.element.removeAttr('class');
+			}
+
+			$img.css({
+				'position': '',
+				'z-index': '',
+				'pointer-events': ''
+			});
+
+			if ('' == $img.attr('style')) {
+				$img.removeAttr('style');
+			}
+
+			this.container.remove();
+			this.mapItems.splice(0, this.mapItems.length);
             this._mouseDestroy();
         },
 
@@ -103,7 +155,7 @@
             if (opts.disabled)
                 return;
 
-            this._trigger('start', event);
+            this._trigger('start', event, this.helper);
 			this._setInactive($('.' + opts.drawHelperClass + '.active'));
 
             $(this.element).append(this.helper);
@@ -176,27 +228,39 @@
 			if (self._colliding()) {
 				self._resetAll(self.helper);
 			} else {
-
 				var mapItem = self.helper.clone().appendTo(self.container);
 
+				console.log($(mapItem).width(),$(mapItem).height());
+
+				if ($(mapItem).width() < opts.drawHelperMinWidth) {
+					$(mapItem).css({ 'width': opts.drawHelperMinWidth + 'px' });
+				}
+
+				if ($(mapItem).height() < opts.drawHelperMinHeight) {
+					$(mapItem).css({ 'height': opts.drawHelperMinHeight + 'px' });
+				}
+
 				self._setActive(mapItem);
+
 				$(mapItem)
 					.removeClass('drag')
 					.addClass('drop')
+
+					// Apply jQuery UI draggable
 					.draggable({
-						zIndex: 500,
 						stack: opts.drawHelperClass,
 						containment: "parent",
 						revertDuration: opts.revertDuration,
 						revert: function () {
-							if (self._colliding()) {
-								return true;
-							}
+							// Revert position if colliding with other element.
+							return self._colliding();
 						},
 						drag: function (ev, ui) {
 							if (self._colliding()) {
+								// Style as error if colliding with other element.
 								self._setError(ui.helper);
 							} else {
+								// Style as active if not colliding with other element.
 								self._setActive(ui.helper)
 							}
 						},
@@ -209,16 +273,19 @@
 						},
 						stop: function (ev, ui) {
 							if (!self._colliding()) {
+								var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 								self._resetError(ui.helper);
 								$(ui.helper).removeClass('drag').addClass('drop');
-								var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 								self.mapItems[itemId].left = self._parseValue(ui.position.left);
 								self.mapItems[itemId].top = self._parseValue(ui.position.top);
-								self._trigger('updated', ev, {items: self.mapItems});
+								self._triggerUpdateItems(ev);
 							}
 						}
 					})
+
+					// Apply jQuery UI resizable
 					.resizable({
+						autoHide: self.options.autoHideHandles,
 						containment: "parent",
 						resize: function (ev, ui) {
 							if (self._colliding()) {
@@ -234,14 +301,25 @@
 							$(ui.helper).removeClass('drop').addClass('drag');
 						},
 						stop: function (ev, ui) {
-							$(ui.helper).removeClass('drag').addClass('drop');
-							var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
-							self.mapItems[itemId].width = self._parseValue(ui.size.width);
-							self.mapItems[itemId].height = self._parseValue(ui.size.height);
-							self._trigger('updated', ev, {items: self.mapItems});
+							if (!self._colliding()) {
+								$(ui.helper).removeClass('drag').addClass('drop');
+								var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
+								self.mapItems[itemId].width = self._parseValue(ui.size.width);
+								self.mapItems[itemId].height = self._parseValue(ui.size.height);
+								self._triggerUpdateItems(ev);
+							} else {
+								$(ui.helper).animate({
+									'width': ui.originalSize.width + 'px',
+									'height': ui.originalSize.height + 'px'
+								}, self.options.revertDuration, function () {
+									self._setActive(ui.helper);
+								});
+							}
 						}
 					})
+
 					.attr('data-id', (this.mapItems.length + 1))
+
 					.click(function (event) {
 						if (!$(event.target).hasClass('active')) {
 							self._setInactive($('.' + opts.drawHelperClass + '.active'));
@@ -249,76 +327,60 @@
 						}
 					});
 
-				this._saveMapItem(mapItem);
-				this.helper.remove();
-				this._trigger('updated', event, {items: this.mapItems});
+				self._saveMapItem(mapItem);
+				self.helper.remove();
+				self._triggerUpdateItems(event);
 			}
 
             return false;
         },
 
-		_resetAll: function (el) {
-			var self = this;
-
-			$(el).animate({
-				'width': '0px',
-				'height': '0px',
-				'border-color': 'rgba(0,0,0,0)'
-			}, self.options.revertDuration, function () {
-				$(el).remove();
-			})
-		},
-
 		_setActive: function (el) {
 			var opts = this.options;
 
-			$(el)
-				.css({
-					'z-index': 150,
-					'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
-					'background-color': opts.backgroundActiveColor
-				})
-				.addClass('active');
+			this.active = $(el);
+
+			$(el).css({
+				'z-index': opts.zIndexActive,
+				'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
+				'background-color': opts.backgroundActiveColor
+			}).addClass('active');
 		},
 
 		_setInactive: function (el) {
 			var opts = this.options;
 
-			$(el)
-				.css({
-					'border': opts.borderSize + ' ' + opts.borderStyle + ' ' + opts.borderColor,
-					'background-color': opts.backgroundColor
-				})
-				.removeClass('active');
+			$(el).css({
+				'z-index': opts.zIndex,
+				'border': opts.borderSize + ' ' + opts.borderStyle + ' ' + opts.borderColor,
+				'background-color': opts.backgroundColor
+			}).removeClass('active');
 		},
 
 		_setError: function (el) {
 			var opts = this.options;
 
-			$(el)
-				.css({
-					'border': opts.borderActiveErrorSize + ' ' + opts.borderActiveErrorStyle + ' ' + opts.borderActiveErrorColor,
-					'background-color': opts.backgroundActiveErrorColor
-				})
-				.addClass('error');
+			$(el).css({
+				'border': opts.borderActiveErrorSize + ' ' + opts.borderActiveErrorStyle + ' ' + opts.borderActiveErrorColor,
+				'background-color': opts.backgroundActiveErrorColor
+			}).addClass('error');
 		},
 
 		_resetError: function (el) {
 			var opts = this.options;
 
-			$(el)
-				.css({
-					'z-index': 150,
-					'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
-					'background-color': opts.backgroundActiveColor
-				})
-				.removeClass('error');
+			$(el).css({
+				'z-index': opts.zIndexActive,
+				'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
+				'background-color': opts.backgroundActiveColor
+			}).removeClass('error');
 		},
 
 		_setDraw: function (el) {
 			var opts = this.options;
 
 			$(el).css({
+				'z-index': opts.zIndex,
 				'border': opts.borderDrawSize + ' ' + opts.borderDrawStyle + ' ' + opts.borderDrawColor,
 				'background-color': opts.backgroundDrawColor
 			});
@@ -333,13 +395,38 @@
 			});
 		},
 
+		_resetAll: function (el) {
+			var self = this;
+
+			$(el).animate({
+				'z-index': self.options.zIndex,
+				'width': '0px',
+				'height': '0px',
+				'border-color': 'rgba(0,0,0,0)'
+			}, self.options.revertDuration, function () {
+				$(el).remove();
+			})
+		},
+
+		/**
+		 * Delete the active marker.
+		 */
+		_deleteActive: function (event) {
+			if (this.active !== null) {
+				var $active = $(this.active);
+				this._deleteMapItem($active);
+				$active.remove();
+				this._triggerUpdateItems(event);
+			}
+		},
+
 		/**
 		 * Stores the drawn map area.
 		 *
 		 * @param el
 		 */
 		_saveMapItem: function (el) {
-			var id = this.options.mapItemClass + '-' + (this.mapItems.length + 1),
+			var id = this.options.drawHelperClass + '-' + (this.mapItems.length + 1),
 				item = {
 					id: id,
 					left: this._parseValue(el.css('left')),
@@ -350,6 +437,16 @@
 
 			$(el).attr('id', id);
 			this.mapItems.push(item);
+		},
+
+		/**
+		 * Deletes the map area.
+		 *
+		 * @param el
+		 */
+		_deleteMapItem: function (el) {
+			var id = parseInt($(el).attr('data-id'), 10) - 1;
+			this.mapItems.splice(id, 1);
 		},
 
 		/**
@@ -381,6 +478,12 @@
 			return percent + '%';
 		},
 
+		/**
+		 * Checks if the dragged element collides with other elements.
+		 *
+		 * @returns {boolean}
+		 * @private
+		 */
 		_colliding: function () {
 			if (this.options.handleCollision) {
 				var drag = $('.drag'),
@@ -391,6 +494,21 @@
 			} else {
 				return false;
 			}
+		},
+
+		/**
+		 * Triggers the update event.
+		 *
+		 * @param event
+		 */
+		_triggerUpdateItems: function (event) {
+			var items = null;
+
+			if (this.mapItems.length) {
+				items = this.mapItems;
+			}
+
+			this._trigger('updated', event, { items: items });
 		}
     });
 

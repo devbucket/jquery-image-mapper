@@ -18,9 +18,9 @@
 
 			if ( ! (
 				(compare.right+tol) < bounds.left ||
-				(compare.left+tol) > bounds.right ||
+				(compare.left-tol) > bounds.right ||
 				(compare.bottom+tol) < bounds.top ||
-				(compare.top+tol) > bounds.bottom)
+				(compare.top-tol) > bounds.bottom)
 			) {
 				elems.targets.push(this);
 				elems.hits.push(obj);
