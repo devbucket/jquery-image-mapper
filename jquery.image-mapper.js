@@ -354,12 +354,14 @@
             });
         },
         _deleteActive: function(event) {
-            var self = this;
+            var self = this, opts = self.options;
             if (self.active !== null) {
                 var $active = $(self.active);
                 self._deleteMapItem($active);
                 $active.remove();
                 self._triggerUpdateItems(event);
+                self.active = null;
+                opts.drawHelperSpecialClass = "";
                 self._trigger("inactive", event);
             }
         },
