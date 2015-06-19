@@ -6,33 +6,33 @@
  * 2015-06-19
  */
 
-(function(a) {
+(function($) {
     "use strict";
-    a.fn.overlaps = function(b, c) {
-        var d = {
+    $.fn.overlaps = function(obj, tolerance) {
+        var elems = {
             targets: [],
             hits: []
         };
-        var e = typeof c === "undefined" ? 1 : c;
+        var tol = typeof tolerance === "undefined" ? 1 : tolerance;
         this.each(function() {
-            var c = a(this).offset();
-            c.right = c.left + a(this).outerWidth();
-            c.bottom = c.top + a(this).outerHeight();
-            var f = a(b).offset();
-            f.right = f.left + a(b).outerWidth();
-            f.bottom = f.top + a(b).outerHeight();
-            if (!(f.right + e < c.left || f.left - e > c.right || f.bottom + e < c.top || f.top - e > c.bottom)) {
-                d.targets.push(this);
-                d.hits.push(b);
+            var bounds = $(this).offset();
+            bounds.right = bounds.left + $(this).outerWidth();
+            bounds.bottom = bounds.top + $(this).outerHeight();
+            var compare = $(obj).offset();
+            compare.right = compare.left + $(obj).outerWidth();
+            compare.bottom = compare.top + $(obj).outerHeight();
+            if (!(compare.right + tol < bounds.left || compare.left - tol > bounds.right || compare.bottom + tol < bounds.top || compare.top - tol > bounds.bottom)) {
+                elems.targets.push(this);
+                elems.hits.push(obj);
             }
         });
-        return d;
+        return elems;
     };
 })(jQuery);
 
-(function(a) {
+(function($) {
     "use strict";
-    a.widget("ui.imageMapper", a.ui.mouse, {
+    $.widget("ui.imageMapper", $.ui.mouse, {
         options: {
             handleCollision: true,
             collisionTolerance: 1,
@@ -70,21 +70,21 @@
             backgroundActiveErrorColor: "rgba(255,0,0,0.35)"
         },
         _init: function() {
-            var b = this;
-            b.elementTag = "<" + b.options.objectTypes + "/>";
-            b.mapItems = [];
-            b.dragged = true;
-            b.active = null;
-            b._mouseInit();
-            b.element.addClass(b.options.elementClass).css({
+            var self = this;
+            self.elementTag = "<" + self.options.objectTypes + "/>";
+            self.mapItems = [];
+            self.dragged = true;
+            self.active = null;
+            self._mouseInit();
+            self.element.addClass(self.options.elementClass).css({
                 position: "relative"
             });
-            a(b.element).find("img").css({
+            $(self.element).find("img").css({
                 position: "relative",
                 "z-index": 1,
                 "pointer-events": "none"
             });
-            b.container = a(b.elementTag).addClass(this.options.drawHelperContainerClass).css({
+            self.container = $(self.elementTag).addClass(this.options.drawHelperContainerClass).css({
                 position: "absolute",
                 "z-index": 2,
                 top: 0,
@@ -92,11 +92,11 @@
                 width: "100%",
                 height: "100%",
                 overflow: "hidden"
-            }).appendTo(a(b.element));
-            b.helper = a(b.elementTag).addClass(b.options.drawHelperClass).addClass("drag");
-            a("html").keyup(function(a) {
-                if (a.keyCode === 8 || a.keyCode === 46) {
-                    b._deleteActive(a);
+            }).appendTo($(self.element));
+            self.helper = $(self.elementTag).addClass(self.options.drawHelperClass).addClass("drag");
+            $("html").keyup(function(event) {
+                if (event.keyCode === 8 || event.keyCode === 46) {
+                    self._deleteActive(event);
                 }
             });
         },
@@ -104,7 +104,7 @@
             return this.mapItems;
         },
         destroy: function() {
-            var a = this.element.find("img");
+            var $img = this.element.find("img");
             this.element.removeClass(this.options.elementClass + " " + this.options.elementDisabledClass).css({
                 position: ""
             });
@@ -114,267 +114,267 @@
             if ("" == this.element.attr("class")) {
                 this.element.removeAttr("class");
             }
-            a.css({
+            $img.css({
                 position: "",
                 "z-index": "",
                 "pointer-events": ""
             });
-            if ("" == a.attr("style")) {
-                a.removeAttr("style");
+            if ("" == $img.attr("style")) {
+                $img.removeAttr("style");
             }
             this.container.remove();
             this.mapItems.splice(0, this.mapItems.length);
             this._mouseDestroy();
         },
-        _mouseStart: function(b) {
-            var c = this, d = c.options;
-            if (d.disabled) return;
-            c.elPos = a(c.element).offset();
-            c.opos = [ b.pageX - c.elPos.left, b.pageY - c.elPos.top ];
-            c._trigger("start", b, c.helper);
-            c._setInactive(a("." + d.drawHelperClass + ".active"));
-            a(c.element).append(c.helper);
-            c.helper.css({
-                "z-index": d.zIndex + (c.mapItems.length + 1),
+        _mouseStart: function(event) {
+            var self = this, opts = self.options;
+            if (opts.disabled) return;
+            self.elPos = $(self.element).offset();
+            self.opos = [ event.pageX - self.elPos.left, event.pageY - self.elPos.top ];
+            self._trigger("start", event, self.helper);
+            self._setInactive($("." + opts.drawHelperClass + ".active"));
+            $(self.element).append(self.helper);
+            self.helper.css({
+                "z-index": opts.zIndex + (self.mapItems.length + 1),
                 position: "absolute",
-                left: c.opos[0],
-                top: c.opos[1],
+                left: self.opos[0],
+                top: self.opos[1],
                 width: 0,
                 height: 0
             });
             this._setDraw(this.helper);
         },
-        _mouseDrag: function(a) {
-            var b = this;
-            b.dragged = true;
-            if (b.options.disabled) return false;
-            var c = b.opos[0], d = b.opos[1], e = a.pageX - b.elPos.left, f = a.pageY - b.elPos.top;
-            if (c > e) {
-                var g = e;
-                e = c;
-                c = g;
+        _mouseDrag: function(event) {
+            var self = this;
+            self.dragged = true;
+            if (self.options.disabled) return false;
+            var x1 = self.opos[0], y1 = self.opos[1], x2 = event.pageX - self.elPos.left, y2 = event.pageY - self.elPos.top;
+            if (x1 > x2) {
+                var tmp = x2;
+                x2 = x1;
+                x1 = tmp;
             }
-            b.helper.css({
-                left: c,
-                top: d,
-                width: e - c,
-                height: f - d
+            self.helper.css({
+                left: x1,
+                top: y1,
+                width: x2 - x1,
+                height: y2 - y1
             });
-            b._trigger("drag", a);
-            if (b._colliding()) {
-                b._setDrawError(b.helper);
+            self._trigger("drag", event);
+            if (self._colliding()) {
+                self._setDrawError(self.helper);
             } else {
-                b._setDraw(b.helper);
+                self._setDraw(self.helper);
             }
             return false;
         },
-        _mouseStop: function(b) {
-            var c = this, d = c.options;
-            c.dragged = false;
-            if (d.disabled) return false;
-            if (c._colliding()) {
-                c._resetAll(c.helper);
+        _mouseStop: function(event) {
+            var self = this, opts = self.options;
+            self.dragged = false;
+            if (opts.disabled) return false;
+            if (self._colliding()) {
+                self._resetAll(self.helper);
             } else {
-                var e = c.helper.clone().appendTo(c.container);
-                if (a(e).width() < d.drawHelperMinWidth) {
-                    a(e).css({
-                        width: d.drawHelperMinWidth + "px"
+                var mapItem = self.helper.clone().appendTo(self.container);
+                if ($(mapItem).width() < opts.drawHelperMinWidth) {
+                    $(mapItem).css({
+                        width: opts.drawHelperMinWidth + "px"
                     });
                 }
-                if (a(e).height() < d.drawHelperMinHeight) {
-                    a(e).css({
-                        height: d.drawHelperMinHeight + "px"
+                if ($(mapItem).height() < opts.drawHelperMinHeight) {
+                    $(mapItem).css({
+                        height: opts.drawHelperMinHeight + "px"
                     });
                 }
-                c._setActive(e);
-                a(e).removeClass("drag").addClass("drop").draggable({
-                    stack: d.drawHelperClass,
+                self._setActive(mapItem);
+                $(mapItem).removeClass("drag").addClass("drop").draggable({
+                    stack: opts.drawHelperClass,
                     containment: "parent",
-                    revertDuration: d.revertDuration,
+                    revertDuration: opts.revertDuration,
                     revert: function() {
-                        return c._colliding();
+                        return self._colliding();
                     },
-                    drag: function(a, b) {
-                        if (c._colliding()) {
-                            c._setError(b.helper);
+                    drag: function(ev, ui) {
+                        if (self._colliding()) {
+                            self._setError(ui.helper);
                         } else {
-                            c._setActive(b.helper);
+                            self._setActive(ui.helper);
                         }
                     },
-                    start: function(b, e) {
-                        if (!a(e.helper).hasClass("active")) {
-                            c._setInactive(a("." + d.drawHelperClass + ".active"));
+                    start: function(ev, ui) {
+                        if (!$(ui.helper).hasClass("active")) {
+                            self._setInactive($("." + opts.drawHelperClass + ".active"));
                         }
-                        a(e.helper).removeClass("drop").addClass("drag");
+                        $(ui.helper).removeClass("drop").addClass("drag");
                     },
-                    stop: function(b, d) {
-                        if (!c._colliding()) {
-                            var e = parseInt(a(d.helper).attr("data-id"), 10) - 1;
-                            c._resetError(d.helper);
-                            a(d.helper).removeClass("drag").addClass("drop");
-                            c.mapItems[e].left = c._parseValue(d.position.left);
-                            c.mapItems[e].top = c._parseValue(d.position.top);
-                            c._triggerUpdateItems(b);
+                    stop: function(ev, ui) {
+                        if (!self._colliding()) {
+                            var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
+                            self._resetError(ui.helper);
+                            $(ui.helper).removeClass("drag").addClass("drop");
+                            self.mapItems[itemId].left = self._parseValue(ui.position.left);
+                            self.mapItems[itemId].top = self._parseValue(ui.position.top);
+                            self._triggerUpdateItems(ev);
                         }
                     }
                 }).resizable({
-                    autoHide: c.options.autoHideHandles,
+                    autoHide: self.options.autoHideHandles,
                     containment: "parent",
-                    resize: function(a, b) {
-                        if (c._colliding()) {
-                            c._setError(b.helper);
+                    resize: function(ev, ui) {
+                        if (self._colliding()) {
+                            self._setError(ui.helper);
                         } else {
-                            c._setActive(b.helper);
+                            self._setActive(ui.helper);
                         }
                     },
-                    start: function(b, e) {
-                        if (!a(e.helper).hasClass("active")) {
-                            c._setInactive(a("." + d.drawHelperClass + ".active"));
+                    start: function(ev, ui) {
+                        if (!$(ui.helper).hasClass("active")) {
+                            self._setInactive($("." + opts.drawHelperClass + ".active"));
                         }
-                        a(e.helper).removeClass("drop").addClass("drag");
+                        $(ui.helper).removeClass("drop").addClass("drag");
                     },
-                    stop: function(b, d) {
-                        if (!c._colliding()) {
-                            a(d.helper).removeClass("drag").addClass("drop");
-                            var e = parseInt(a(d.helper).attr("data-id"), 10) - 1;
-                            c.mapItems[e].width = c._parseValue(d.size.width);
-                            c.mapItems[e].height = c._parseValue(d.size.height);
-                            c._triggerUpdateItems(b);
+                    stop: function(ev, ui) {
+                        if (!self._colliding()) {
+                            $(ui.helper).removeClass("drag").addClass("drop");
+                            var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
+                            self.mapItems[itemId].width = self._parseValue(ui.size.width);
+                            self.mapItems[itemId].height = self._parseValue(ui.size.height);
+                            self._triggerUpdateItems(ev);
                         } else {
-                            a(d.helper).animate({
-                                width: d.originalSize.width + "px",
-                                height: d.originalSize.height + "px"
-                            }, c.options.revertDuration, function() {
-                                c._setActive(d.helper);
+                            $(ui.helper).animate({
+                                width: ui.originalSize.width + "px",
+                                height: ui.originalSize.height + "px"
+                            }, self.options.revertDuration, function() {
+                                self._setActive(ui.helper);
                             });
                         }
                     }
-                }).attr("data-id", this.mapItems.length + 1).click(function(b) {
-                    if (!a(b.target).hasClass("active")) {
-                        c._setInactive(a("." + d.drawHelperClass + ".active"));
-                        c._setActive(b.target);
+                }).attr("data-id", this.mapItems.length + 1).click(function(event) {
+                    if (!$(event.target).hasClass("active")) {
+                        self._setInactive($("." + opts.drawHelperClass + ".active"));
+                        self._setActive(event.target);
                     }
                 });
-                c._saveMapItem(e);
-                c.helper.remove();
-                c._triggerUpdateItems(b);
+                self._saveMapItem(mapItem);
+                self.helper.remove();
+                self._triggerUpdateItems(event);
             }
             return false;
         },
-        _setActive: function(b) {
-            var c = this, d = c.options;
-            c.active = a(b);
-            a(b).css({
-                "z-index": d.zIndexActive,
-                border: d.borderActiveSize + " " + d.borderActiveStyle + " " + d.borderActiveColor,
-                "background-color": d.backgroundActiveColor
+        _setActive: function(el) {
+            var self = this, opts = self.options;
+            self.active = $(el);
+            $(el).css({
+                "z-index": opts.zIndexActive,
+                border: opts.borderActiveSize + " " + opts.borderActiveStyle + " " + opts.borderActiveColor,
+                "background-color": opts.backgroundActiveColor
             }).addClass("active");
         },
-        _setInactive: function(b) {
-            var c = this, d = c.options;
-            a(b).css({
-                "z-index": d.zIndex,
-                border: d.borderSize + " " + d.borderStyle + " " + d.borderColor,
-                "background-color": d.backgroundColor
+        _setInactive: function(el) {
+            var self = this, opts = self.options;
+            $(el).css({
+                "z-index": opts.zIndex,
+                border: opts.borderSize + " " + opts.borderStyle + " " + opts.borderColor,
+                "background-color": opts.backgroundColor
             }).removeClass("active");
         },
-        _setError: function(b) {
-            var c = this, d = c.options;
-            a(b).css({
-                border: d.borderActiveErrorSize + " " + d.borderActiveErrorStyle + " " + d.borderActiveErrorColor,
-                "background-color": d.backgroundActiveErrorColor
+        _setError: function(el) {
+            var self = this, opts = self.options;
+            $(el).css({
+                border: opts.borderActiveErrorSize + " " + opts.borderActiveErrorStyle + " " + opts.borderActiveErrorColor,
+                "background-color": opts.backgroundActiveErrorColor
             }).addClass("error");
         },
-        _resetError: function(b) {
-            var c = this, d = c.options;
-            a(b).css({
-                "z-index": d.zIndexActive,
-                border: d.borderActiveSize + " " + d.borderActiveStyle + " " + d.borderActiveColor,
-                "background-color": d.backgroundActiveColor
+        _resetError: function(el) {
+            var self = this, opts = self.options;
+            $(el).css({
+                "z-index": opts.zIndexActive,
+                border: opts.borderActiveSize + " " + opts.borderActiveStyle + " " + opts.borderActiveColor,
+                "background-color": opts.backgroundActiveColor
             }).removeClass("error");
         },
-        _setDraw: function(b) {
-            var c = this, d = c.options;
-            a(b).css({
-                "z-index": d.zIndex,
-                border: d.borderDrawSize + " " + d.borderDrawStyle + " " + d.borderDrawColor,
-                "background-color": d.backgroundDrawColor
+        _setDraw: function(el) {
+            var self = this, opts = self.options;
+            $(el).css({
+                "z-index": opts.zIndex,
+                border: opts.borderDrawSize + " " + opts.borderDrawStyle + " " + opts.borderDrawColor,
+                "background-color": opts.backgroundDrawColor
             });
         },
-        _setDrawError: function(b) {
-            var c = this, d = c.options;
-            a(b).css({
-                border: d.borderDrawErrorSize + " " + d.borderDrawErrorStyle + " " + d.borderDrawErrorColor,
-                "background-color": d.backgroundDrawErrorColor
+        _setDrawError: function(el) {
+            var self = this, opts = self.options;
+            $(el).css({
+                border: opts.borderDrawErrorSize + " " + opts.borderDrawErrorStyle + " " + opts.borderDrawErrorColor,
+                "background-color": opts.backgroundDrawErrorColor
             });
         },
-        _resetAll: function(b) {
-            var c = this;
-            a(b).animate({
-                "z-index": c.options.zIndex,
+        _resetAll: function(el) {
+            var self = this;
+            $(el).animate({
+                "z-index": self.options.zIndex,
                 width: "0px",
                 height: "0px",
                 "border-color": "rgba(0,0,0,0)"
-            }, c.options.revertDuration, function() {
-                a(b).remove();
+            }, self.options.revertDuration, function() {
+                $(el).remove();
             });
         },
-        _deleteActive: function(b) {
-            var c = this;
-            if (c.active !== null) {
-                var d = a(c.active);
-                c._deleteMapItem(d);
-                d.remove();
-                c._triggerUpdateItems(b);
+        _deleteActive: function(event) {
+            var self = this;
+            if (self.active !== null) {
+                var $active = $(self.active);
+                self._deleteMapItem($active);
+                $active.remove();
+                self._triggerUpdateItems(event);
             }
         },
-        _saveMapItem: function(b) {
-            var c = this, d = c.options.drawHelperClass + "-" + (c.mapItems.length + 1), e = {
-                id: d,
-                left: c._parseValue(b.css("left")),
-                top: c._parseValue(b.css("top")),
-                width: c._parseValue(b.css("width")),
-                height: c._parseValue(b.css("height"))
+        _saveMapItem: function(el) {
+            var self = this, id = self.options.drawHelperClass + "-" + (self.mapItems.length + 1), item = {
+                id: id,
+                left: self._parseValue(el.css("left")),
+                top: self._parseValue(el.css("top")),
+                width: self._parseValue(el.css("width")),
+                height: self._parseValue(el.css("height"))
             };
-            a(b).attr("id", d);
-            c.mapItems.push(e);
+            $(el).attr("id", id);
+            self.mapItems.push(item);
         },
-        _deleteMapItem: function(b) {
-            var c = this, d = parseInt(a(b).attr("data-id"), 10) - 1;
-            c.mapItems.splice(d, 1);
+        _deleteMapItem: function(el) {
+            var self = this, id = parseInt($(el).attr("data-id"), 10) - 1;
+            self.mapItems.splice(id, 1);
         },
-        _parseValue: function(a) {
-            var b = this;
-            if (b.options.mapItemsListPercentage === true) {
-                return b._pixelToPercentageHorizontal(a);
+        _parseValue: function(value) {
+            var self = this;
+            if (self.options.mapItemsListPercentage === true) {
+                return self._pixelToPercentageHorizontal(value);
             } else {
-                return a.toString().replace("px", "") + "px";
+                return value.toString().replace("px", "") + "px";
             }
         },
-        _pixelToPercentageHorizontal: function(b) {
-            var c = parseInt(b.toString().replace("px", ""), 10), d = parseInt(a(this.container).width().toString(), 10), e = 100 / d * c;
-            return e + "%";
+        _pixelToPercentageHorizontal: function(value) {
+            var intValue = parseInt(value.toString().replace("px", ""), 10), intValueO = parseInt($(this.container).width().toString(), 10), percent = 100 / intValueO * intValue;
+            return percent + "%";
         },
         _colliding: function() {
-            var b = this;
-            if (b.options.handleCollision) {
-                var c = a(".drag"), d = a(".drop"), e = d.overlaps(c, b.options.collisionTolerance);
-                return e.targets.length > 0;
+            var self = this;
+            if (self.options.handleCollision) {
+                var drag = $(".drag"), drop = $(".drop"), collides = drop.overlaps(drag, self.options.collisionTolerance);
+                return collides.targets.length > 0;
             } else {
                 return false;
             }
         },
-        _triggerUpdateItems: function(a) {
-            var b = this, c = null;
-            if (b.mapItems.length) {
-                c = b.mapItems;
+        _triggerUpdateItems: function(event) {
+            var self = this, items = null;
+            if (self.mapItems.length) {
+                items = self.mapItems;
             }
-            b._trigger("updated", a, {
-                items: c
+            self._trigger("updated", event, {
+                items: items
             });
         }
     });
-    a.extend(a.ui.imageMapper, {
-        defaults: a.extend({}, a.ui.mouse.defaults)
+    $.extend($.ui.imageMapper, {
+        defaults: $.extend({}, $.ui.mouse.defaults)
     });
 })(jQuery);

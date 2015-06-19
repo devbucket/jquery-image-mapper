@@ -28,7 +28,7 @@ module.exports = function (grunt) {
 					compress: false,
 					banner: '<%= banner %>\n',
 					beautify: true,
-					mangle: true
+					mangle: false
 				},
 				files: {
 					'jquery.image-mapper.js': ['jquery.image-mapper.js']
