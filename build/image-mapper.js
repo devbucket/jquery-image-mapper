@@ -230,8 +230,6 @@
 			} else {
 				var mapItem = self.helper.clone().appendTo(self.container);
 
-				console.log($(mapItem).width(),$(mapItem).height());
-
 				if ($(mapItem).width() < opts.drawHelperMinWidth) {
 					$(mapItem).css({ 'width': opts.drawHelperMinWidth + 'px' });
 				}
