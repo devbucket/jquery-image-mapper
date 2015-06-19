@@ -547,7 +547,7 @@
 				items = self.mapItems;
 			}
 
-			self._trigger('updated', event, { items: items });
+			self._trigger('updated', event, [items]);
 		}
     });
 
