@@ -334,6 +334,7 @@
 						if (!$(event.target).hasClass('active')) {
 							self._setInactive($('.' + opts.drawHelperClass + '.active'));
 							self._setActive(event.target);
+							self._trigger('active', event, self.active);
 						}
 					});
 
