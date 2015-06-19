@@ -41,6 +41,7 @@
             elementDisabledClass: "ui-image-mapper-disabled",
             mapItemsListPercentage: false,
             drawHelperClass: "ui-image-mapper-helper",
+            drawHelperSpecialClass: "",
             drawHelperMinWidth: 20,
             drawHelperMinHeight: 20,
             drawHelperContainerClass: "ui-image-mapper-maps",
@@ -102,6 +103,9 @@
         },
         items: function() {
             return this.mapItems;
+        },
+        item: function() {
+            return this.helper;
         },
         destroy: function() {
             var $img = this.element.find("img");
@@ -186,6 +190,7 @@
                         height: opts.drawHelperMinHeight + "px"
                     });
                 }
+                $(mapItem).addClass(opts.drawHelperSpecialClass);
                 self._setActive(mapItem);
                 $(mapItem).removeClass("drag").addClass("drop").draggable({
                     stack: opts.drawHelperClass,

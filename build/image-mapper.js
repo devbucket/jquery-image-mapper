@@ -12,6 +12,7 @@
 			elementDisabledClass: 'ui-image-mapper-disabled',
 			mapItemsListPercentage: false,
 			drawHelperClass: 'ui-image-mapper-helper',
+			drawHelperSpecialClass: '',
 			drawHelperMinWidth: 20,
 			drawHelperMinHeight: 20,
 			drawHelperContainerClass: 'ui-image-mapper-maps',
@@ -99,10 +100,21 @@
 		},
 
 		/**
-		 * Retrieve all items
+		 * Retrieve all map area.
+		 *
+		 * @returns {Array}
 		 */
 		items: function () {
 			return this.mapItems;
+		},
+
+		/**
+		 * Retrieve the current map area.
+		 *
+		 * @returns {helper|*}
+		 */
+		item: function () {
+			return this.helper;
 		},
 
 		/**
@@ -243,6 +255,8 @@
 				if ($(mapItem).height() < opts.drawHelperMinHeight) {
 					$(mapItem).css({ 'height': opts.drawHelperMinHeight + 'px' });
 				}
+
+				$(mapItem).addClass(opts.drawHelperSpecialClass);
 
 				self._setActive(mapItem);
 
