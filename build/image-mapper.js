@@ -60,7 +60,7 @@
 			self.element
 				.addClass(self.options.elementClass)
 				.css({
-					'position': 'absolute'
+					'position': 'relative'
 				});
 
 			// Set the image position relative.
@@ -146,14 +146,14 @@
 			var self = this,
 				opts = this.options;
 
+			if (opts.disabled)
+				return;
+
 			this.elPos = $(this.element).offset();
             this.opos = [
 				(event.pageX - this.elPos.left),
 				(event.pageY - this.elPos.top)
 			];
-
-            if (opts.disabled)
-                return;
 
             this._trigger('start', event, this.helper);
 			this._setInactive($('.' + opts.drawHelperClass + '.active'));
@@ -224,6 +224,9 @@
 
 			var self = this,
 				opts = self.options;
+
+			if (opts.disabled)
+				return false;
 
 			if (self._colliding()) {
 				self._resetAll(self.helper);
