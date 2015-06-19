@@ -123,11 +123,19 @@
 		 * @returns {helper|*}
 		 */
 		item: function () {
-			return this.helper;
+			return this.active;
 		},
 
-		activeItem: function () {
-			return this.active;
+		/**
+		 * Toggle the special class and attribute.
+		 *
+		 * @param newSpecial
+		 */
+		toggleSpecial: function (newSpecial) {
+			$(this.active)
+				.removeClass(this.options.drawHelperSpecialClass)
+				.addClass(newSpecial)
+				.attr('data-special', newSpecial);
 		},
 
 		/**
