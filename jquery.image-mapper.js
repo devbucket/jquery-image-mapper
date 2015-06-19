@@ -230,6 +230,8 @@
                         }
                     }
                 }).resizable({
+                    minWidth: opts.drawHelperMinWidth,
+                    minHeight: opts.drawHelperMinHeight,
                     autoHide: self.options.autoHideHandles,
                     containment: "parent",
                     resize: function(ev, ui) {
