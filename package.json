@@ -1,7 +1,7 @@
 {
   "name": "jquery-image-mapper",
   "title": "jQuery Image Mapper",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.",
   "repository": {
     "type": "git",
