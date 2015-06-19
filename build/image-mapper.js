@@ -486,6 +486,7 @@
 				self._deleteMapItem($active);
 				$active.remove();
 				self._triggerUpdateItems(event);
+				self._trigger('inactive', event)
 			}
 		},
 
