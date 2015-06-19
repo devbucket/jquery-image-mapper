@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.3.3 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.3.4 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -116,6 +116,7 @@
         },
         toggleSpecial: function(newSpecial) {
             $(this.active).removeClass(this.options.drawHelperSpecialClass).addClass(newSpecial).attr("data-special", newSpecial);
+            this.options.drawHelperSpecialClass = newSpecial;
         },
         destroy: function() {
             var $img = this.element.find("img");

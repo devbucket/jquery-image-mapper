@@ -136,6 +136,8 @@
 				.removeClass(this.options.drawHelperSpecialClass)
 				.addClass(newSpecial)
 				.attr('data-special', newSpecial);
+
+			this.options.drawHelperSpecialClass = newSpecial;
 		},
 
 		/**
