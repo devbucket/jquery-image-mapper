@@ -89,6 +89,7 @@
 				.click(function (event) {
 					if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
 						self._setInactive($('.' + opts.drawHelperClass + '.active'));
+						self.active = null;
 						opts.drawHelperSpecialClass = '';
 						self._trigger('inactive', event);
 					}
