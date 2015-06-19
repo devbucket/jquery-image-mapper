@@ -5,9 +5,17 @@ module.exports = function (grunt) {
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
+		banner: '/* <%= pkg.title %> v<%= pkg.version %> - <%= pkg.homepage %>\n' +
+			' * <%= pkg.description %>\n' +
+			' * \n' +
+			' * Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author %>\n' +
+			' * Licensed under the <%= pkg.license %> license\n' +
+			' * <%= grunt.template.today("yyyy-mm-dd") %>\n' +
+			' */\n',
 		concat: {
 			options: {
-				separator: '\n\n'
+				separator: ';\n',
+				stripBanners: true
 			},
 			dist: {
 				src: ['build/overlaps.js', 'build/image-mapper.js'],
@@ -15,21 +23,26 @@ module.exports = function (grunt) {
 			}
 		},
 		uglify: {
-			options: {
-				sourceMap: true,
-				compress: {
-					drop_console: true,
-					drop_debugger: true
+			max: {
+				options: {
+					compress: false,
+					banner: '<%= banner %>\n',
+					beautify: true,
+					mangle: true
 				},
-				banner: '/* <%= pkg.title %> v<%= pkg.version %> - <%= pkg.homepage %>\n' +
-				' * <%= pkg.description %>\n' +
-				' * \n' +
-				' * Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author %>\n' +
-				' * Licensed under the <%= pkg.license %> license\n' +
-				' * <%= grunt.template.today("yyyy-mm-dd") %>\n' +
-				' */'
+				files: {
+					'jquery.image-mapper.js': ['jquery.image-mapper.js']
+				}
 			},
-			minify : {
+			min: {
+				options: {
+					compress: {
+						drop_console: true,
+						drop_debugger: true
+					},
+					banner: '<%= banner %>',
+					mangle: true
+				},
 				files: {
 					'jquery.image-mapper.min.js': ['jquery.image-mapper.js']
 				}

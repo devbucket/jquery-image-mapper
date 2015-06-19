@@ -1,4 +1,5 @@
 (function ($) {
+	"use strict";
 
     $.widget('ui.imageMapper', $.ui.mouse, {
 
@@ -144,27 +145,27 @@
 		 */
         _mouseStart: function (event) {
 			var self = this,
-				opts = this.options;
+				opts = self.options;
 
 			if (opts.disabled)
 				return;
 
-			this.elPos = $(this.element).offset();
-            this.opos = [
-				(event.pageX - this.elPos.left),
-				(event.pageY - this.elPos.top)
+			self.elPos = $(self.element).offset();
+			self.opos = [
+				(event.pageX - self.elPos.left),
+				(event.pageY - self.elPos.top)
 			];
 
-            this._trigger('start', event, this.helper);
-			this._setInactive($('.' + opts.drawHelperClass + '.active'));
+			self._trigger('start', event, self.helper);
+			self._setInactive($('.' + opts.drawHelperClass + '.active'));
 
-            $(this.element).append(this.helper);
+            $(self.element).append(self.helper);
 
-			this.helper.css({
-				'z-index': (opts.zIndex + (this.mapItems.length + 1)),
+			self.helper.css({
+				'z-index': (opts.zIndex + (self.mapItems.length + 1)),
 				'position': 'absolute',
-				'left': this.opos[0],
-				'top': this.opos[1],
+				'left': self.opos[0],
+				'top': self.opos[1],
 				'width': 0,
 				'height': 0
 			});
@@ -179,15 +180,17 @@
 		 * @returns {boolean}
 		 */
         _mouseDrag: function (event) {
-            this.dragged = true;
+			var self = this;
 
-            if (this.options.disabled)
-                return;
+			self.dragged = true;
 
-			var x1 = this.opos[0],
-				y1 = this.opos[1],
-				x2 = (event.pageX - this.elPos.left),
-				y2 = (event.pageY - this.elPos.top);
+            if (self.options.disabled)
+                return false;
+
+			var x1 = self.opos[0],
+				y1 = self.opos[1],
+				x2 = (event.pageX - self.elPos.left),
+				y2 = (event.pageY - self.elPos.top);
 
             if (x1 > x2) {
                 var tmp = x2;
@@ -195,19 +198,19 @@
                 x1 = tmp;
             }
 
-			this.helper.css({
+			self.helper.css({
 				'left': x1,
 				'top': y1,
 				'width': x2 - x1,
 				'height': y2 - y1
 			});
 
-            this._trigger('drag', event);
+			self._trigger('drag', event);
 
-			if (this._colliding()) {
-				this._setDrawError(this.helper);
+			if (self._colliding()) {
+				self._setDrawError(self.helper);
 			} else {
-				this._setDraw(this.helper);
+				self._setDraw(self.helper);
 			}
 
             return false;
@@ -220,10 +223,10 @@
 		 * @returns {boolean}
 		 */
         _mouseStop: function (event) {
-            this.dragged = false;
-
 			var self = this,
 				opts = self.options;
+
+			self.dragged = false;
 
 			if (opts.disabled)
 				return false;
@@ -337,9 +340,10 @@
         },
 
 		_setActive: function (el) {
-			var opts = this.options;
+			var self = this,
+				opts = self.options;
 
-			this.active = $(el);
+			self.active = $(el);
 
 			$(el).css({
 				'z-index': opts.zIndexActive,
@@ -349,7 +353,8 @@
 		},
 
 		_setInactive: function (el) {
-			var opts = this.options;
+			var self = this,
+				opts = self.options;
 
 			$(el).css({
 				'z-index': opts.zIndex,
@@ -359,7 +364,8 @@
 		},
 
 		_setError: function (el) {
-			var opts = this.options;
+			var self = this,
+				opts = self.options;
 
 			$(el).css({
 				'border': opts.borderActiveErrorSize + ' ' + opts.borderActiveErrorStyle + ' ' + opts.borderActiveErrorColor,
@@ -368,7 +374,8 @@
 		},
 
 		_resetError: function (el) {
-			var opts = this.options;
+			var self = this,
+				opts = self.options;
 
 			$(el).css({
 				'z-index': opts.zIndexActive,
@@ -378,7 +385,8 @@
 		},
 
 		_setDraw: function (el) {
-			var opts = this.options;
+			var self = this,
+				opts = self.options;
 
 			$(el).css({
 				'z-index': opts.zIndex,
@@ -388,7 +396,8 @@
 		},
 
 		_setDrawError: function (el) {
-			var opts = this.options;
+			var self = this,
+				opts = self.options;
 
 			$(el).css({
 				'border': opts.borderDrawErrorSize + ' ' + opts.borderDrawErrorStyle + ' ' + opts.borderDrawErrorColor,
@@ -413,11 +422,13 @@
 		 * Delete the active marker.
 		 */
 		_deleteActive: function (event) {
-			if (this.active !== null) {
-				var $active = $(this.active);
-				this._deleteMapItem($active);
+			var self = this;
+
+			if (self.active !== null) {
+				var $active = $(self.active);
+				self._deleteMapItem($active);
 				$active.remove();
-				this._triggerUpdateItems(event);
+				self._triggerUpdateItems(event);
 			}
 		},
 
@@ -427,17 +438,18 @@
 		 * @param el
 		 */
 		_saveMapItem: function (el) {
-			var id = this.options.drawHelperClass + '-' + (this.mapItems.length + 1),
+			var self = this,
+				id = self.options.drawHelperClass + '-' + (self.mapItems.length + 1),
 				item = {
 					id: id,
-					left: this._parseValue(el.css('left')),
-					top: this._parseValue(el.css('top')),
-					width: this._parseValue(el.css('width')),
-					height: this._parseValue(el.css('height'))
+					left: self._parseValue(el.css('left')),
+					top: self._parseValue(el.css('top')),
+					width: self._parseValue(el.css('width')),
+					height: self._parseValue(el.css('height'))
 				};
 
 			$(el).attr('id', id);
-			this.mapItems.push(item);
+			self.mapItems.push(item);
 		},
 
 		/**
@@ -446,8 +458,10 @@
 		 * @param el
 		 */
 		_deleteMapItem: function (el) {
-			var id = parseInt($(el).attr('data-id'), 10) - 1;
-			this.mapItems.splice(id, 1);
+			var self = this,
+				id = parseInt($(el).attr('data-id'), 10) - 1;
+
+			self.mapItems.splice(id, 1);
 		},
 
 		/**
@@ -457,8 +471,10 @@
 		 * @returns {*}
 		 */
 		_parseValue: function (value) {
-			if (this.options.mapItemsListPercentage === true) {
-				return this._pixelToPercentageHorizontal(value)
+			var self = this;
+
+			if (self.options.mapItemsListPercentage === true) {
+				return self._pixelToPercentageHorizontal(value)
 			} else {
 				return value.toString().replace('px', '') + 'px';
 			}
@@ -486,10 +502,12 @@
 		 * @private
 		 */
 		_colliding: function () {
-			if (this.options.handleCollision) {
+			var self = this;
+
+			if (self.options.handleCollision) {
 				var drag = $('.drag'),
 					drop = $('.drop'),
-					collides = drop.overlaps(drag, this.options.collisionTolerance);
+					collides = drop.overlaps(drag, self.options.collisionTolerance);
 
 				return (collides.targets.length > 0);
 			} else {
@@ -503,13 +521,14 @@
 		 * @param event
 		 */
 		_triggerUpdateItems: function (event) {
-			var items = null;
+			var self = this,
+				items = null;
 
-			if (this.mapItems.length) {
-				items = this.mapItems;
+			if (self.mapItems.length) {
+				items = self.mapItems;
 			}
 
-			this._trigger('updated', event, { items: items });
+			self._trigger('updated', event, { items: items });
 		}
     });
 
