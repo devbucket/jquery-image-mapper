@@ -125,6 +125,10 @@
 			return this.helper;
 		},
 
+		activeItem: function () {
+			return this.active;
+		},
+
 		/**
 		 * Destroy the plugin.
 		 */

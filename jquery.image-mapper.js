@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.3.1 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.3.2 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -112,6 +112,9 @@
         },
         item: function() {
             return this.helper;
+        },
+        activeItem: function() {
+            return this.active;
         },
         destroy: function() {
             var $img = this.element.find("img");
