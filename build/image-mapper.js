@@ -306,6 +306,7 @@
 							}
 
 							$(ui.helper).removeClass('drop').addClass('drag');
+							self._trigger('active', event, self.active);
 						},
 						stop: function (ev, ui) {
 							if (!self._colliding()) {
@@ -335,6 +336,7 @@
 								self._setInactive($('.' + opts.drawHelperClass + '.active'));
 							}
 							$(ui.helper).removeClass('drop').addClass('drag');
+							self._trigger('active', event, self.active);
 						},
 						stop: function (ev, ui) {
 							if (!self._colliding()) {
