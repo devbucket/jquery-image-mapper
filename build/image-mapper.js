@@ -275,14 +275,16 @@
 
 				self._setMinWidth(mapItem);
 				self._setActive(mapItem);
-				self._trigger('active', event, self.active);
 
 				$(mapItem)
 					.addClass(opts.drawHelperSpecialClass)
 					.attr('data-special', opts.drawHelperSpecialClass)
 					.removeClass('drag')
-					.addClass('drop')
+					.addClass('drop');
 
+				self._trigger('active', event, self.active);
+
+				$(mapItem)
 					// Apply jQuery UI draggable
 					.draggable({
 						stack: opts.drawHelperClass,

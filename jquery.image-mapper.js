@@ -196,8 +196,9 @@
                 var mapItem = self.helper.clone().appendTo(self.container);
                 self._setMinWidth(mapItem);
                 self._setActive(mapItem);
+                $(mapItem).addClass(opts.drawHelperSpecialClass).attr("data-special", opts.drawHelperSpecialClass).removeClass("drag").addClass("drop");
                 self._trigger("active", event, self.active);
-                $(mapItem).addClass(opts.drawHelperSpecialClass).attr("data-special", opts.drawHelperSpecialClass).removeClass("drag").addClass("drop").draggable({
+                $(mapItem).draggable({
                     stack: opts.drawHelperClass,
                     containment: "parent",
                     revertDuration: opts.revertDuration,
