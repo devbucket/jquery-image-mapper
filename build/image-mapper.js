@@ -275,6 +275,7 @@
 
 				self._setMinWidth(mapItem);
 				self._setActive(mapItem);
+				self._trigger('active', event, self.active);
 
 				$(mapItem)
 					.addClass(opts.drawHelperSpecialClass)
@@ -306,6 +307,7 @@
 							}
 
 							$(ui.helper).removeClass('drop').addClass('drag');
+							self._setActive(ui.helper);
 							self._trigger('active', event, self.active);
 						},
 						stop: function (ev, ui) {
@@ -336,6 +338,7 @@
 								self._setInactive($('.' + opts.drawHelperClass + '.active'));
 							}
 							$(ui.helper).removeClass('drop').addClass('drag');
+							self._setActive(ui.helper);
 							self._trigger('active', event, self.active);
 						},
 						stop: function (ev, ui) {

@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.3.5 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.3.6 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -196,6 +196,7 @@
                 var mapItem = self.helper.clone().appendTo(self.container);
                 self._setMinWidth(mapItem);
                 self._setActive(mapItem);
+                self._trigger("active", event, self.active);
                 $(mapItem).addClass(opts.drawHelperSpecialClass).attr("data-special", opts.drawHelperSpecialClass).removeClass("drag").addClass("drop").draggable({
                     stack: opts.drawHelperClass,
                     containment: "parent",
@@ -215,6 +216,7 @@
                             self._setInactive($("." + opts.drawHelperClass + ".active"));
                         }
                         $(ui.helper).removeClass("drop").addClass("drag");
+                        self._setActive(ui.helper);
                         self._trigger("active", event, self.active);
                     },
                     stop: function(ev, ui) {
@@ -242,6 +244,7 @@
                             self._setInactive($("." + opts.drawHelperClass + ".active"));
                         }
                         $(ui.helper).removeClass("drop").addClass("drag");
+                        self._setActive(ui.helper);
                         self._trigger("active", event, self.active);
                     },
                     stop: function(ev, ui) {
