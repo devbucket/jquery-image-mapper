@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v1.2.2 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.2.4 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -180,19 +180,9 @@
                 self._resetAll(self.helper);
             } else {
                 var mapItem = self.helper.clone().appendTo(self.container);
-                if ($(mapItem).width() < opts.drawHelperMinWidth) {
-                    $(mapItem).css({
-                        width: opts.drawHelperMinWidth + "px"
-                    });
-                }
-                if ($(mapItem).height() < opts.drawHelperMinHeight) {
-                    $(mapItem).css({
-                        height: opts.drawHelperMinHeight + "px"
-                    });
-                }
-                $(mapItem).addClass(opts.drawHelperSpecialClass);
+                self._setMinWidth(mapItem);
                 self._setActive(mapItem);
-                $(mapItem).removeClass("drag").addClass("drop").draggable({
+                $(mapItem).addClass(opts.drawHelperSpecialClass).removeClass("drag").addClass("drop").draggable({
                     stack: opts.drawHelperClass,
                     containment: "parent",
                     revertDuration: opts.revertDuration,
@@ -265,6 +255,19 @@
                 self._triggerUpdateItems(event);
             }
             return false;
+        },
+        _setMinWidth: function(el) {
+            var self = this, opts = self.options;
+            if ($(el).width() < opts.drawHelperMinWidth) {
+                $(el).css({
+                    width: opts.drawHelperMinWidth + "px"
+                });
+            }
+            if ($(el).height() < opts.drawHelperMinHeight) {
+                $(el).css({
+                    height: opts.drawHelperMinHeight + "px"
+                });
+            }
         },
         _setActive: function(el) {
             var self = this, opts = self.options;

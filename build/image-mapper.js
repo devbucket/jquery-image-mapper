@@ -248,19 +248,11 @@
 			} else {
 				var mapItem = self.helper.clone().appendTo(self.container);
 
-				if ($(mapItem).width() < opts.drawHelperMinWidth) {
-					$(mapItem).css({ 'width': opts.drawHelperMinWidth + 'px' });
-				}
-
-				if ($(mapItem).height() < opts.drawHelperMinHeight) {
-					$(mapItem).css({ 'height': opts.drawHelperMinHeight + 'px' });
-				}
-
-				$(mapItem).addClass(opts.drawHelperSpecialClass);
-
+				self._setMinWidth(mapItem);
 				self._setActive(mapItem);
 
 				$(mapItem)
+					.addClass(opts.drawHelperSpecialClass)
 					.removeClass('drag')
 					.addClass('drop')
 
@@ -352,6 +344,19 @@
 
             return false;
         },
+
+		_setMinWidth: function (el) {
+			var self = this,
+				opts = self.options;
+
+			if ($(el).width() < opts.drawHelperMinWidth) {
+				$(el).css({ 'width': opts.drawHelperMinWidth + 'px' });
+			}
+
+			if ($(el).height() < opts.drawHelperMinHeight) {
+				$(el).css({ 'height': opts.drawHelperMinHeight + 'px' });
+			}
+		},
 
 		_setActive: function (el) {
 			var self = this,
