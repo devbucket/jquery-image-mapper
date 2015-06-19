@@ -48,7 +48,8 @@
 		 * @private
 		 */
         _init: function () {
-			var self = this;
+			var self = this,
+				opts = self.options;
 
 			self.elementTag = '<' + self.options.objectTypes + '/>';
 
@@ -84,7 +85,14 @@
 					'height': '100%',
 					'overflow': 'hidden'
 				})
-				.appendTo($(self.element));
+				.appendTo($(self.element))
+				.click(function (event) {
+					if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
+						self._setInactive($('.' + opts.drawHelperClass + '.active'));
+						opts.drawHelperSpecialClass = '';
+						self._trigger('inactive', event);
+					}
+				});
 
 			// Create the helper
 			self.helper = $(self.elementTag)
@@ -162,6 +170,8 @@
 			if (opts.disabled)
 				return;
 
+			self.container.css({'pointer-events': 'none'});
+
 			self.elPos = $(self.element).offset();
 			self.opos = [
 				(event.pageX - self.elPos.left),
@@ -199,8 +209,8 @@
             if (self.options.disabled)
                 return false;
 
-			var x1 = self.opos[0],
-				y1 = self.opos[1],
+			var x1 = (self.opos[0]+2),
+				y1 = (self.opos[1]+2),
 				x2 = (event.pageX - self.elPos.left),
 				y2 = (event.pageY - self.elPos.top);
 
@@ -338,6 +348,8 @@
 							self._trigger('active', event, self.active);
 						}
 					});
+
+				self.container.css({'pointer-events': 'auto'});
 
 				self._saveMapItem(mapItem);
 				self.helper.remove();

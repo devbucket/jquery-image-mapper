@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.2.6 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.3.1 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -71,7 +71,7 @@
             backgroundActiveErrorColor: "rgba(255,0,0,0.35)"
         },
         _init: function() {
-            var self = this;
+            var self = this, opts = self.options;
             self.elementTag = "<" + self.options.objectTypes + "/>";
             self.mapItems = [];
             self.dragged = true;
@@ -93,7 +93,13 @@
                 width: "100%",
                 height: "100%",
                 overflow: "hidden"
-            }).appendTo($(self.element));
+            }).appendTo($(self.element)).click(function(event) {
+                if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
+                    self._setInactive($("." + opts.drawHelperClass + ".active"));
+                    opts.drawHelperSpecialClass = "";
+                    self._trigger("inactive", event);
+                }
+            });
             self.helper = $(self.elementTag).addClass(self.options.drawHelperClass).addClass("drag");
             $("html").keyup(function(event) {
                 if (event.keyCode === 8 || event.keyCode === 46) {
@@ -133,6 +139,9 @@
         _mouseStart: function(event) {
             var self = this, opts = self.options;
             if (opts.disabled) return;
+            self.container.css({
+                "pointer-events": "none"
+            });
             self.elPos = $(self.element).offset();
             self.opos = [ event.pageX - self.elPos.left, event.pageY - self.elPos.top ];
             self._trigger("start", event, self.helper);
@@ -152,7 +161,7 @@
             var self = this;
             self.dragged = true;
             if (self.options.disabled) return false;
-            var x1 = self.opos[0], y1 = self.opos[1], x2 = event.pageX - self.elPos.left, y2 = event.pageY - self.elPos.top;
+            var x1 = self.opos[0] + 2, y1 = self.opos[1] + 2, x2 = event.pageX - self.elPos.left, y2 = event.pageY - self.elPos.top;
             if (x1 > x2) {
                 var tmp = x2;
                 x2 = x1;
@@ -250,6 +259,9 @@
                         self._setActive(event.target);
                         self._trigger("active", event, self.active);
                     }
+                });
+                self.container.css({
+                    "pointer-events": "auto"
                 });
                 self._saveMapItem(mapItem);
                 self.helper.remove();
