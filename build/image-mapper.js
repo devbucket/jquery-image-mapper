@@ -253,6 +253,7 @@
 
 				$(mapItem)
 					.addClass(opts.drawHelperSpecialClass)
+					.attr('data-special', opts.drawHelperSpecialClass)
 					.removeClass('drag')
 					.addClass('drop')
 
