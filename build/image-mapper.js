@@ -5,6 +5,7 @@
 
 		// Default options.
 		options: {
+			data: [],
 			handleCollision: true,
 			collisionTolerance: 1,
 			autoHideHandles: true,
@@ -51,7 +52,7 @@
 			var self = this,
 				opts = self.options;
 
-			self.elementTag = '<' + self.options.objectTypes + '/>';
+			self.elementTag = '<' + opts.objectTypes + '/>';
 
 			// Set up the plugin
 			self.mapItems = [];
@@ -61,7 +62,7 @@
 
 			// Style the element.
 			self.element
-				.addClass(self.options.elementClass)
+				.addClass(opts.elementClass)
 				.css({
 					'position': 'relative'
 				});
@@ -75,7 +76,7 @@
 
 			// Create the maps container
 			self.container = $(self.elementTag)
-                .addClass(this.options.drawHelperContainerClass)
+                .addClass(opts.drawHelperContainerClass)
 				.css({
 					'position': 'absolute',
 					'z-index': 2,
@@ -85,7 +86,7 @@
 					'height': '100%',
 					'overflow': 'hidden'
 				})
-				.appendTo($(self.element))
+				.appendTo(self.element)
 				.click(function (event) {
 					if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
 						self._setInactive($('.' + opts.drawHelperClass + '.active'));
@@ -96,9 +97,7 @@
 				});
 
 			// Create the helper
-			self.helper = $(self.elementTag)
-				.addClass(self.options.drawHelperClass)
-				.addClass('drag');
+			self.helper = $(self.elementTag).addClass(opts.drawHelperClass + ' drag');
 
 			// Delete the active helper on pressing delete or back key
 			$('html').keyup(function (event) {
@@ -106,6 +105,59 @@
 					self._deleteActive(event);
 				}
 			});
+
+			self._setExistingData();
+		},
+
+		_setExistingData: function () {
+			var self = this,
+				opts = self.options;
+
+			if (opts.data.length) {
+				$.each(opts.data, function (index, item) {
+					var special = null,
+						existingItem = $(self.elementTag).appendTo(self.container);
+
+					if (opts.drawHelperSpecialClass !== '') {
+						special = opts.drawHelperSpecialClass
+					}
+
+					if (typeof item.special !== 'undefined') {
+						special = item.special;
+					}
+
+					existingItem
+						.css({
+							'z-index': (opts.zIndex + (self.mapItems.length + 1)),
+							'position': 'absolute',
+							'left': item.left,
+							'top': item.top,
+							'width': item.width,
+							'height': item.height
+						})
+						.addClass(opts.drawHelperClass + ' ' + special + ' drop')
+						.attr('data-id', (self.mapItems.length + 1));
+
+					if (special !== null) {
+						existingItem.attr('data-special', special);
+					}
+
+					self._addDraggable(existingItem);
+					self._addResizable(existingItem);
+
+					existingItem
+						.click(function (event) {
+							if (!$(event.target).hasClass('active')) {
+								self._setInactive($('.' + opts.drawHelperClass + '.active'));
+								self._setActive(event.target);
+								self._trigger('active', event, self.active);
+							}
+						});
+
+					self._setInactive(existingItem);
+					self._saveMapItem(existingItem, item.id, special);
+				});
+			}
 		},
 
 		/**
@@ -196,7 +248,7 @@
 			self._trigger('start', event, self.helper);
 			self._setInactive($('.' + opts.drawHelperClass + '.active'));
 
-            $(self.element).append(self.helper);
+            $(self.container).append(self.helper);
 
 			self.helper.css({
 				'z-index': (opts.zIndex + (self.mapItems.length + 1)),
@@ -207,7 +259,7 @@
 				'height': 0
 			});
 
-			this._setDraw(this.helper);
+			self._setDraw(self.helper);
         },
 
 		/**
@@ -261,110 +313,41 @@
 		 */
         _mouseStop: function (event) {
 			var self = this,
-				opts = self.options;
+				opts = self.options,
+				special = null,
+				mapItem;
 
 			self.dragged = false;
 
 			if (opts.disabled)
 				return false;
 
+
 			if (self._colliding()) {
 				self._resetAll(self.helper);
 			} else {
-				var mapItem = self.helper.clone().appendTo(self.container);
+
+				mapItem = self.helper.clone().appendTo(self.container);
 
 				self._setMinWidth(mapItem);
 				self._setActive(mapItem);
 
-				$(mapItem)
-					.addClass(opts.drawHelperSpecialClass)
-					.attr('data-special', opts.drawHelperSpecialClass)
+				mapItem
 					.removeClass('drag')
-					.addClass('drop');
+					.addClass(opts.drawHelperSpecialClass + ' drop');
 
-				self._trigger('active', event, self.active);
+				if (opts.drawHelperSpecialClass !== '') {
+					special = opts.drawHelperSpecialClass;
+					mapItem.attr('data-special', special);
+				}
 
-				$(mapItem)
-					// Apply jQuery UI draggable
-					.draggable({
-						stack: opts.drawHelperClass,
-						containment: "parent",
-						revertDuration: opts.revertDuration,
-						revert: function () {
-							// Revert position if colliding with other element.
-							return self._colliding();
-						},
-						drag: function (ev, ui) {
-							if (self._colliding()) {
-								// Style as error if colliding with other element.
-								self._setError(ui.helper);
-							} else {
-								// Style as active if not colliding with other element.
-								self._setActive(ui.helper)
-							}
-						},
-						start: function (ev, ui) {
-							if (!$(ui.helper).hasClass('active')) {
-								self._setInactive($('.' + opts.drawHelperClass + '.active'));
-							}
+				self._trigger('active', event, mapItem);
 
-							$(ui.helper).removeClass('drop').addClass('drag');
-							self._setActive(ui.helper);
-							self._trigger('active', event, self.active);
-						},
-						stop: function (ev, ui) {
-							if (!self._colliding()) {
-								var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
-								self._resetError(ui.helper);
-								$(ui.helper).removeClass('drag').addClass('drop');
-								self.mapItems[itemId].left = self._parseValue(ui.position.left);
-								self.mapItems[itemId].top = self._parseValue(ui.position.top);
-								self._triggerUpdateItems(ev);
-							}
-						}
-					})
+				self._addDraggable(mapItem);
+				self._addResizable(mapItem);
 
-					// Apply jQuery UI resizable
-					.resizable({
-						minWidth: opts.drawHelperMinWidth,
-						minHeight: opts.drawHelperMinHeight,
-						autoHide: self.options.autoHideHandles,
-						containment: "parent",
-						resize: function (ev, ui) {
-							if (self._colliding()) {
-								self._setError(ui.helper);
-							} else {
-								self._setActive(ui.helper)
-							}
-						},
-						start: function (ev, ui) {
-							if (!$(ui.helper).hasClass('active')) {
-								self._setInactive($('.' + opts.drawHelperClass + '.active'));
-							}
-							$(ui.helper).removeClass('drop').addClass('drag');
-							self._setActive(ui.helper);
-							self._trigger('active', event, self.active);
-						},
-						stop: function (ev, ui) {
-							if (!self._colliding()) {
-								$(ui.helper).removeClass('drag').addClass('drop');
-								var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
-								self.mapItems[itemId].width = self._parseValue(ui.size.width);
-								self.mapItems[itemId].height = self._parseValue(ui.size.height);
-								self._triggerUpdateItems(ev);
-							} else {
-								$(ui.helper).animate({
-									'width': ui.originalSize.width + 'px',
-									'height': ui.originalSize.height + 'px'
-								}, self.options.revertDuration, function () {
-									self._setActive(ui.helper);
-								});
-							}
-						}
-					})
-
+				mapItem
 					.attr('data-id', (this.mapItems.length + 1))
-
 					.click(function (event) {
 						if (!$(event.target).hasClass('active')) {
 							self._setInactive($('.' + opts.drawHelperClass + '.active'));
@@ -373,15 +356,103 @@
 						}
 					});
 
-				self.container.css({'pointer-events': 'auto'});
-
-				self._saveMapItem(mapItem);
+				self._saveMapItem(mapItem, null, special);
 				self.helper.remove();
 				self._triggerUpdateItems(event);
 			}
 
+			self.container.css({
+				'pointer-events': 'auto'
+			});
+
             return false;
         },
+
+		_addDraggable: function (el) {
+			var self = this,
+				opts = self.options;
+
+			$(el).draggable({
+				stack: opts.drawHelperClass,
+				containment: "parent",
+				revertDuration: opts.revertDuration,
+				revert: function () {
+					// Revert position if colliding with other element.
+					return self._colliding();
+				},
+				drag: function (ev, ui) {
+					if (self._colliding()) {
+						// Style as error if colliding with other element.
+						self._setError(ui.helper);
+					} else {
+						// Style as active if not colliding with other element.
+						self._setActive(ui.helper)
+					}
+				},
+				start: function (ev, ui) {
+					if (!$(ui.helper).hasClass('active')) {
+						self._setInactive($('.' + opts.drawHelperClass + '.active'));
+					}
+
+					$(ui.helper).removeClass('drop').addClass('drag');
+					self._setActive(ui.helper);
+					self._trigger('active', event, self.active);
+				},
+				stop: function (ev, ui) {
+					if (!self._colliding()) {
+						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
+						self._resetError(ui.helper);
+						$(ui.helper).removeClass('drag').addClass('drop');
+						self.mapItems[itemId].left = self._parseValue(ui.position.left);
+						self.mapItems[itemId].top = self._parseValue(ui.position.top);
+						self._triggerUpdateItems(ev);
+					}
+				}
+			});
+		},
+
+		_addResizable: function (el) {
+			var self = this,
+				opts = self.options;
+
+			$(el).resizable({
+				minWidth: opts.drawHelperMinWidth,
+				minHeight: opts.drawHelperMinHeight,
+				autoHide: self.options.autoHideHandles,
+				containment: "parent",
+				resize: function (ev, ui) {
+					if (self._colliding()) {
+						self._setError(ui.helper);
+					} else {
+						self._setActive(ui.helper)
+					}
+				},
+				start: function (ev, ui) {
+					if (!$(ui.helper).hasClass('active')) {
+						self._setInactive($('.' + opts.drawHelperClass + '.active'));
+					}
+					$(ui.helper).removeClass('drop').addClass('drag');
+					self._setActive(ui.helper);
+					self._trigger('active', event, self.active);
+				},
+				stop: function (ev, ui) {
+					if (!self._colliding()) {
+						$(ui.helper).removeClass('drag').addClass('drop');
+						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
+						self.mapItems[itemId].width = self._parseValue(ui.size.width);
+						self.mapItems[itemId].height = self._parseValue(ui.size.height);
+						self._triggerUpdateItems(ev);
+					} else {
+						$(ui.helper).animate({
+							'width': ui.originalSize.width + 'px',
+							'height': ui.originalSize.height + 'px'
+						}, self.options.revertDuration, function () {
+							self._setActive(ui.helper);
+						});
+					}
+				}
+			});
+		},
 
 		_setMinWidth: function (el) {
 			var self = this,
@@ -471,7 +542,7 @@
 				'height': '0px',
 				'border-color': 'rgba(0,0,0,0)'
 			}, self.options.revertDuration, function () {
-				$(el).remove();
+				//$(el).remove();
 			})
 		},
 
@@ -497,19 +568,34 @@
 		 * Stores the drawn map area.
 		 *
 		 * @param el
+		 * @param id
+		 * @param special
 		 */
-		_saveMapItem: function (el) {
+		_saveMapItem: function (el, id, special) {
 			var self = this,
-				id = self.options.drawHelperClass + '-' + (self.mapItems.length + 1),
-				item = {
-					id: id,
-					left: self._parseValue(el.css('left')),
-					top: self._parseValue(el.css('top')),
-					width: self._parseValue(el.css('width')),
-					height: self._parseValue(el.css('height'))
-				};
+				opts = self.options,
+				item = {};
+
+			if (typeof id === 'undefined' || id === null) {
+				id = opts.drawHelperClass + '-' + (self.mapItems.length + 1);
+			}
 
 			$(el).attr('id', id);
+
+			item.id 	= id;
+			item.left 	= self._parseValue(el.css('left'));
+			item.top 	= self._parseValue(el.css('top'));
+			item.width 	= self._parseValue(el.css('width'));
+			item.height	= self._parseValue(el.css('height'));
+
+			if (opts.drawHelperSpecialClass !== '') {
+				item.special = opts.drawHelperSpecialClass
+			}
+
+			if (typeof special !== 'undefined') {
+				item.special = special;
+			}
+
 			self.mapItems.push(item);
 		},
 
@@ -590,6 +676,17 @@
 			}
 
 			self._trigger('updated', event, [items]);
+		},
+
+		_handleItemClick: function (self, event) {
+			var self = this,
+				opts = self.options;
+
+			if (!$(event.target).hasClass('active')) {
+				self._setInactive($('.' + opts.drawHelperClass + '.active'));
+				self._setActive(event.target);
+				self._trigger('active', event, self.active);
+			}
 		}
     });
 

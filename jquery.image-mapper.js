@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.3.6 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.4.1 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-06-19
+ * 2015-06-22
  */
 
 (function($) {
@@ -34,6 +34,7 @@
     "use strict";
     $.widget("ui.imageMapper", $.ui.mouse, {
         options: {
+            data: [],
             handleCollision: true,
             collisionTolerance: 1,
             autoHideHandles: true,
@@ -72,12 +73,12 @@
         },
         _init: function() {
             var self = this, opts = self.options;
-            self.elementTag = "<" + self.options.objectTypes + "/>";
+            self.elementTag = "<" + opts.objectTypes + "/>";
             self.mapItems = [];
             self.dragged = true;
             self.active = null;
             self._mouseInit();
-            self.element.addClass(self.options.elementClass).css({
+            self.element.addClass(opts.elementClass).css({
                 position: "relative"
             });
             $(self.element).find("img").css({
@@ -85,7 +86,7 @@
                 "z-index": 1,
                 "pointer-events": "none"
             });
-            self.container = $(self.elementTag).addClass(this.options.drawHelperContainerClass).css({
+            self.container = $(self.elementTag).addClass(opts.drawHelperContainerClass).css({
                 position: "absolute",
                 "z-index": 2,
                 top: 0,
@@ -93,7 +94,7 @@
                 width: "100%",
                 height: "100%",
                 overflow: "hidden"
-            }).appendTo($(self.element)).click(function(event) {
+            }).appendTo(self.element).click(function(event) {
                 if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
                     self._setInactive($("." + opts.drawHelperClass + ".active"));
                     self.active = null;
@@ -101,12 +102,49 @@
                     self._trigger("inactive", event);
                 }
             });
-            self.helper = $(self.elementTag).addClass(self.options.drawHelperClass).addClass("drag");
+            self.helper = $(self.elementTag).addClass(opts.drawHelperClass + " drag");
             $("html").keyup(function(event) {
                 if (event.keyCode === 8 || event.keyCode === 46) {
                     self._deleteActive(event);
                 }
             });
+            self._setExistingData();
+        },
+        _setExistingData: function() {
+            var self = this, opts = self.options;
+            if (opts.data.length) {
+                $.each(opts.data, function(index, item) {
+                    var special = null, existingItem = $(self.elementTag).appendTo(self.container);
+                    if (opts.drawHelperSpecialClass !== "") {
+                        special = opts.drawHelperSpecialClass;
+                    }
+                    if (typeof item.special !== "undefined") {
+                        special = item.special;
+                    }
+                    existingItem.css({
+                        "z-index": opts.zIndex + (self.mapItems.length + 1),
+                        position: "absolute",
+                        left: item.left,
+                        top: item.top,
+                        width: item.width,
+                        height: item.height
+                    }).addClass(opts.drawHelperClass + " " + special + " drop").attr("data-id", self.mapItems.length + 1);
+                    if (special !== null) {
+                        existingItem.attr("data-special", special);
+                    }
+                    self._addDraggable(existingItem);
+                    self._addResizable(existingItem);
+                    existingItem.click(function(event) {
+                        if (!$(event.target).hasClass("active")) {
+                            self._setInactive($("." + opts.drawHelperClass + ".active"));
+                            self._setActive(event.target);
+                            self._trigger("active", event, self.active);
+                        }
+                    });
+                    self._setInactive(existingItem);
+                    self._saveMapItem(existingItem, item.id, special);
+                });
+            }
         },
         items: function() {
             return this.mapItems;
@@ -151,7 +189,7 @@
             self.opos = [ event.pageX - self.elPos.left, event.pageY - self.elPos.top ];
             self._trigger("start", event, self.helper);
             self._setInactive($("." + opts.drawHelperClass + ".active"));
-            $(self.element).append(self.helper);
+            $(self.container).append(self.helper);
             self.helper.css({
                 "z-index": opts.zIndex + (self.mapItems.length + 1),
                 position: "absolute",
@@ -160,7 +198,7 @@
                 width: 0,
                 height: 0
             });
-            this._setDraw(this.helper);
+            self._setDraw(self.helper);
         },
         _mouseDrag: function(event) {
             var self = this;
@@ -187,100 +225,114 @@
             return false;
         },
         _mouseStop: function(event) {
-            var self = this, opts = self.options;
+            var self = this, opts = self.options, special = null, mapItem;
             self.dragged = false;
             if (opts.disabled) return false;
             if (self._colliding()) {
                 self._resetAll(self.helper);
             } else {
-                var mapItem = self.helper.clone().appendTo(self.container);
+                mapItem = self.helper.clone().appendTo(self.container);
                 self._setMinWidth(mapItem);
                 self._setActive(mapItem);
-                $(mapItem).addClass(opts.drawHelperSpecialClass).attr("data-special", opts.drawHelperSpecialClass).removeClass("drag").addClass("drop");
-                self._trigger("active", event, self.active);
-                $(mapItem).draggable({
-                    stack: opts.drawHelperClass,
-                    containment: "parent",
-                    revertDuration: opts.revertDuration,
-                    revert: function() {
-                        return self._colliding();
-                    },
-                    drag: function(ev, ui) {
-                        if (self._colliding()) {
-                            self._setError(ui.helper);
-                        } else {
-                            self._setActive(ui.helper);
-                        }
-                    },
-                    start: function(ev, ui) {
-                        if (!$(ui.helper).hasClass("active")) {
-                            self._setInactive($("." + opts.drawHelperClass + ".active"));
-                        }
-                        $(ui.helper).removeClass("drop").addClass("drag");
-                        self._setActive(ui.helper);
-                        self._trigger("active", event, self.active);
-                    },
-                    stop: function(ev, ui) {
-                        if (!self._colliding()) {
-                            var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
-                            self._resetError(ui.helper);
-                            $(ui.helper).removeClass("drag").addClass("drop");
-                            self.mapItems[itemId].left = self._parseValue(ui.position.left);
-                            self.mapItems[itemId].top = self._parseValue(ui.position.top);
-                            self._triggerUpdateItems(ev);
-                        }
-                    }
-                }).resizable({
-                    minWidth: opts.drawHelperMinWidth,
-                    minHeight: opts.drawHelperMinHeight,
-                    autoHide: self.options.autoHideHandles,
-                    containment: "parent",
-                    resize: function(ev, ui) {
-                        if (self._colliding()) {
-                            self._setError(ui.helper);
-                        } else {
-                            self._setActive(ui.helper);
-                        }
-                    },
-                    start: function(ev, ui) {
-                        if (!$(ui.helper).hasClass("active")) {
-                            self._setInactive($("." + opts.drawHelperClass + ".active"));
-                        }
-                        $(ui.helper).removeClass("drop").addClass("drag");
-                        self._setActive(ui.helper);
-                        self._trigger("active", event, self.active);
-                    },
-                    stop: function(ev, ui) {
-                        if (!self._colliding()) {
-                            $(ui.helper).removeClass("drag").addClass("drop");
-                            var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
-                            self.mapItems[itemId].width = self._parseValue(ui.size.width);
-                            self.mapItems[itemId].height = self._parseValue(ui.size.height);
-                            self._triggerUpdateItems(ev);
-                        } else {
-                            $(ui.helper).animate({
-                                width: ui.originalSize.width + "px",
-                                height: ui.originalSize.height + "px"
-                            }, self.options.revertDuration, function() {
-                                self._setActive(ui.helper);
-                            });
-                        }
-                    }
-                }).attr("data-id", this.mapItems.length + 1).click(function(event) {
+                mapItem.removeClass("drag").addClass(opts.drawHelperSpecialClass + " drop");
+                if (opts.drawHelperSpecialClass !== "") {
+                    special = opts.drawHelperSpecialClass;
+                    mapItem.attr("data-special", special);
+                }
+                self._trigger("active", event, mapItem);
+                self._addDraggable(mapItem);
+                self._addResizable(mapItem);
+                mapItem.attr("data-id", this.mapItems.length + 1).click(function(event) {
                     if (!$(event.target).hasClass("active")) {
                         self._setInactive($("." + opts.drawHelperClass + ".active"));
                         self._setActive(event.target);
                         self._trigger("active", event, self.active);
                     }
                 });
-                self.container.css({
-                    "pointer-events": "auto"
-                });
-                self._saveMapItem(mapItem);
+                self._saveMapItem(mapItem, null, special);
                 self.helper.remove();
                 self._triggerUpdateItems(event);
             }
+            self.container.css({
+                "pointer-events": "auto"
+            });
             return false;
+        },
+        _addDraggable: function(el) {
+            var self = this, opts = self.options;
+            $(el).draggable({
+                stack: opts.drawHelperClass,
+                containment: "parent",
+                revertDuration: opts.revertDuration,
+                revert: function() {
+                    return self._colliding();
+                },
+                drag: function(ev, ui) {
+                    if (self._colliding()) {
+                        self._setError(ui.helper);
+                    } else {
+                        self._setActive(ui.helper);
+                    }
+                },
+                start: function(ev, ui) {
+                    if (!$(ui.helper).hasClass("active")) {
+                        self._setInactive($("." + opts.drawHelperClass + ".active"));
+                    }
+                    $(ui.helper).removeClass("drop").addClass("drag");
+                    self._setActive(ui.helper);
+                    self._trigger("active", event, self.active);
+                },
+                stop: function(ev, ui) {
+                    if (!self._colliding()) {
+                        var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
+                        self._resetError(ui.helper);
+                        $(ui.helper).removeClass("drag").addClass("drop");
+                        self.mapItems[itemId].left = self._parseValue(ui.position.left);
+                        self.mapItems[itemId].top = self._parseValue(ui.position.top);
+                        self._triggerUpdateItems(ev);
+                    }
+                }
+            });
+        },
+        _addResizable: function(el) {
+            var self = this, opts = self.options;
+            $(el).resizable({
+                minWidth: opts.drawHelperMinWidth,
+                minHeight: opts.drawHelperMinHeight,
+                autoHide: self.options.autoHideHandles,
+                containment: "parent",
+                resize: function(ev, ui) {
+                    if (self._colliding()) {
+                        self._setError(ui.helper);
+                    } else {
+                        self._setActive(ui.helper);
+                    }
+                },
+                start: function(ev, ui) {
+                    if (!$(ui.helper).hasClass("active")) {
+                        self._setInactive($("." + opts.drawHelperClass + ".active"));
+                    }
+                    $(ui.helper).removeClass("drop").addClass("drag");
+                    self._setActive(ui.helper);
+                    self._trigger("active", event, self.active);
+                },
+                stop: function(ev, ui) {
+                    if (!self._colliding()) {
+                        $(ui.helper).removeClass("drag").addClass("drop");
+                        var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
+                        self.mapItems[itemId].width = self._parseValue(ui.size.width);
+                        self.mapItems[itemId].height = self._parseValue(ui.size.height);
+                        self._triggerUpdateItems(ev);
+                    } else {
+                        $(ui.helper).animate({
+                            width: ui.originalSize.width + "px",
+                            height: ui.originalSize.height + "px"
+                        }, self.options.revertDuration, function() {
+                            self._setActive(ui.helper);
+                        });
+                    }
+                }
+            });
         },
         _setMinWidth: function(el) {
             var self = this, opts = self.options;
@@ -349,9 +401,7 @@
                 width: "0px",
                 height: "0px",
                 "border-color": "rgba(0,0,0,0)"
-            }, self.options.revertDuration, function() {
-                $(el).remove();
-            });
+            }, self.options.revertDuration, function() {});
         },
         _deleteActive: function(event) {
             var self = this, opts = self.options;
@@ -365,15 +415,23 @@
                 self._trigger("inactive", event);
             }
         },
-        _saveMapItem: function(el) {
-            var self = this, id = self.options.drawHelperClass + "-" + (self.mapItems.length + 1), item = {
-                id: id,
-                left: self._parseValue(el.css("left")),
-                top: self._parseValue(el.css("top")),
-                width: self._parseValue(el.css("width")),
-                height: self._parseValue(el.css("height"))
-            };
+        _saveMapItem: function(el, id, special) {
+            var self = this, opts = self.options, item = {};
+            if (typeof id === "undefined" || id === null) {
+                id = opts.drawHelperClass + "-" + (self.mapItems.length + 1);
+            }
             $(el).attr("id", id);
+            item.id = id;
+            item.left = self._parseValue(el.css("left"));
+            item.top = self._parseValue(el.css("top"));
+            item.width = self._parseValue(el.css("width"));
+            item.height = self._parseValue(el.css("height"));
+            if (opts.drawHelperSpecialClass !== "") {
+                item.special = opts.drawHelperSpecialClass;
+            }
+            if (typeof special !== "undefined") {
+                item.special = special;
+            }
             self.mapItems.push(item);
         },
         _deleteMapItem: function(el) {
@@ -407,6 +465,14 @@
                 items = self.mapItems;
             }
             self._trigger("updated", event, [ items ]);
+        },
+        _handleItemClick: function(self, event) {
+            var self = this, opts = self.options;
+            if (!$(event.target).hasClass("active")) {
+                self._setInactive($("." + opts.drawHelperClass + ".active"));
+                self._setActive(event.target);
+                self._trigger("active", event, self.active);
+            }
         }
     });
     $.extend($.ui.imageMapper, {
