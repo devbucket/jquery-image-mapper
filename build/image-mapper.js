@@ -11,7 +11,7 @@
 			autoHideHandles: true,
 			elementClass: 'ui-image-mapper',
 			elementDisabledClass: 'ui-image-mapper-disabled',
-			mapItemsListPercentage: false,
+			percentageValues: false,
 			drawHelperClass: 'ui-image-mapper-helper',
 			drawHelperSpecialClass: '',
 			drawHelperMinWidth: 20,
@@ -109,6 +109,9 @@
 			self._setExistingData();
 		},
 
+		/**
+		 * Adds existing data to the painting canvas.
+		 */
 		_setExistingData: function () {
 			var self = this,
 				opts = self.options;
@@ -322,11 +325,12 @@
 			if (opts.disabled)
 				return false;
 
-
+			// If colliding, remove the area with animation
 			if (self._colliding()) {
 				self._resetAll(self.helper);
-			} else {
 
+			// if not colliding, place it.
+			} else {
 				mapItem = self.helper.clone().appendTo(self.container);
 
 				self._setMinWidth(mapItem);
@@ -368,6 +372,11 @@
             return false;
         },
 
+		/**
+		 * Add the jQuery UI draggable plugin to the element.
+		 *
+		 * @param el
+		 */
 		_addDraggable: function (el) {
 			var self = this,
 				opts = self.options;
@@ -390,6 +399,8 @@
 					}
 				},
 				start: function (ev, ui) {
+					// remove .active class from all others
+					// if it is not on current element.
 					if (!$(ui.helper).hasClass('active')) {
 						self._setInactive($('.' + opts.drawHelperClass + '.active'));
 					}
@@ -411,6 +422,11 @@
 			});
 		},
 
+		/**
+		 * Add the jQuery UI resizable plugin to the element.
+		 *
+		 * @param el
+		 */
 		_addResizable: function (el) {
 			var self = this,
 				opts = self.options;
@@ -422,26 +438,37 @@
 				containment: "parent",
 				resize: function (ev, ui) {
 					if (self._colliding()) {
+						// Style as error if colliding with other element.
 						self._setError(ui.helper);
 					} else {
+
+						// Style as active if not colliding with other element.
 						self._setActive(ui.helper)
 					}
 				},
 				start: function (ev, ui) {
+					// remove .active class from all others
+					// if it is not on current element.
 					if (!$(ui.helper).hasClass('active')) {
 						self._setInactive($('.' + opts.drawHelperClass + '.active'));
 					}
+
 					$(ui.helper).removeClass('drop').addClass('drag');
+
 					self._setActive(ui.helper);
 					self._trigger('active', event, self.active);
 				},
+				// The .resizable() plugin doesn't have a revert callback
+				// like the .draggable() plugin, so it has to be custom created.
 				stop: function (ev, ui) {
+					// If not colliding with others, stay resized ...
 					if (!self._colliding()) {
 						$(ui.helper).removeClass('drag').addClass('drop');
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 						self.mapItems[itemId].width = self._parseValue(ui.size.width);
 						self.mapItems[itemId].height = self._parseValue(ui.size.height);
 						self._triggerUpdateItems(ev);
+					// ... otherwise animate back to former size.
 					} else {
 						$(ui.helper).animate({
 							'width': ui.originalSize.width + 'px',
@@ -454,24 +481,35 @@
 			});
 		},
 
+		/**
+		 * Set the minimum width and height of the
+		 * element. Has to be at least 10px!
+		 *
+		 * @param el
+		 */
 		_setMinWidth: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options,
+				minWidth = (opts.drawHelperMinWidth >= 10) ? opts.drawHelperMinWidth : 10,
+				minHeight = (opts.drawHelperMinHeight >= 10) ? opts.drawHelperMinHeight : 10;
 
-			if ($(el).width() < opts.drawHelperMinWidth) {
-				$(el).css({ 'width': opts.drawHelperMinWidth + 'px' });
+			if ($(el).width() < minWidth) {
+				$(el).css({ 'width': minWidth + 'px' });
 			}
 
-			if ($(el).height() < opts.drawHelperMinHeight) {
-				$(el).css({ 'height': opts.drawHelperMinHeight + 'px' });
+			if ($(el).height() < minHeight) {
+				$(el).css({ 'height': minHeight + 'px' });
 			}
 		},
 
+		/**
+		 * Set the element to active state.
+		 *
+		 * @param el
+		 */
 		_setActive: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options;
 
-			self.active = $(el);
+			this.active = $(el);
 
 			$(el).css({
 				'z-index': opts.zIndexActive,
@@ -480,9 +518,13 @@
 			}).addClass('active');
 		},
 
+		/**
+		 * Set the element to inactive state.
+		 *
+		 * @param el
+		 */
 		_setInactive: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options;
 
 			$(el).css({
 				'z-index': opts.zIndex,
@@ -491,9 +533,13 @@
 			}).removeClass('active');
 		},
 
+		/**
+		 * Set the element to error state.
+		 *
+		 * @param el
+		 */
 		_setError: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options;
 
 			$(el).css({
 				'border': opts.borderActiveErrorSize + ' ' + opts.borderActiveErrorStyle + ' ' + opts.borderActiveErrorColor,
@@ -501,9 +547,13 @@
 			}).addClass('error');
 		},
 
+		/**
+		 * Remove the error state from element.
+		 *
+		 * @param el
+		 */
 		_resetError: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options;
 
 			$(el).css({
 				'z-index': opts.zIndexActive,
@@ -512,9 +562,13 @@
 			}).removeClass('error');
 		},
 
+		/**
+		 * Set the element to draw state.
+		 *
+		 * @param el
+		 */
 		_setDraw: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options;
 
 			$(el).css({
 				'z-index': opts.zIndex,
@@ -523,9 +577,13 @@
 			});
 		},
 
+		/**
+		 * Set the element to draw error state.
+		 *
+		 * @param el
+		 */
 		_setDrawError: function (el) {
-			var self = this,
-				opts = self.options;
+			var opts = this.options;
 
 			$(el).css({
 				'border': opts.borderDrawErrorSize + ' ' + opts.borderDrawErrorStyle + ' ' + opts.borderDrawErrorColor,
@@ -533,34 +591,32 @@
 			});
 		},
 
+		/**
+		 * Reset the draw area when e.g. it collides with others on release.
+		 *
+		 * @param el
+		 */
 		_resetAll: function (el) {
-			var self = this;
-
 			$(el).animate({
-				'z-index': self.options.zIndex,
+				'z-index': this.options.zIndex,
 				'width': '0px',
 				'height': '0px',
 				'border-color': 'rgba(0,0,0,0)'
-			}, self.options.revertDuration, function () {
-				//$(el).remove();
-			})
+			}, this.options.revertDuration, function () {
+				$(el).remove();
+			});
 		},
 
 		/**
 		 * Delete the active marker.
 		 */
 		_deleteActive: function (event) {
-			var self = this,
-				opts = self.options;
-
-			if (self.active !== null) {
-				var $active = $(self.active);
-				self._deleteMapItem($active);
-				$active.remove();
-				self._triggerUpdateItems(event);
-				self.active = null;
-				opts.drawHelperSpecialClass = '';
-				self._trigger('inactive', event)
+			if (this.active !== null) {
+				this._deleteMapItem(this.active);
+				this.active.remove();
+				this.active = null;
+				this._triggerUpdateItems(event);
+				this._trigger('inactive', event)
 			}
 		},
 
@@ -572,21 +628,20 @@
 		 * @param special
 		 */
 		_saveMapItem: function (el, id, special) {
-			var self = this,
-				opts = self.options,
+			var opts = this.options,
 				item = {};
 
 			if (typeof id === 'undefined' || id === null) {
-				id = opts.drawHelperClass + '-' + (self.mapItems.length + 1);
+				id = opts.drawHelperClass + '-' + (this.mapItems.length + 1);
 			}
 
 			$(el).attr('id', id);
 
 			item.id 	= id;
-			item.left 	= self._parseValue(el.css('left'));
-			item.top 	= self._parseValue(el.css('top'));
-			item.width 	= self._parseValue(el.css('width'));
-			item.height	= self._parseValue(el.css('height'));
+			item.left 	= this._parseValue(el.css('left'));
+			item.top 	= this._parseValue(el.css('top'));
+			item.width 	= this._parseValue(el.css('width'));
+			item.height	= this._parseValue(el.css('height'));
 
 			if (opts.drawHelperSpecialClass !== '') {
 				item.special = opts.drawHelperSpecialClass
@@ -596,7 +651,7 @@
 				item.special = special;
 			}
 
-			self.mapItems.push(item);
+			this.mapItems.push(item);
 		},
 
 		/**
@@ -605,10 +660,8 @@
 		 * @param el
 		 */
 		_deleteMapItem: function (el) {
-			var self = this,
-				id = parseInt($(el).attr('data-id'), 10) - 1;
-
-			self.mapItems.splice(id, 1);
+			var id = parseInt($(el).attr('data-id'), 10) - 1;
+			this.mapItems.splice(id, 1);
 		},
 
 		/**
@@ -618,13 +671,7 @@
 		 * @returns {*}
 		 */
 		_parseValue: function (value) {
-			var self = this;
-
-			if (self.options.mapItemsListPercentage === true) {
-				return self._pixelToPercentageHorizontal(value)
-			} else {
-				return value.toString().replace('px', '') + 'px';
-			}
+			return (this.options.percentageValues === true) ? this._pixelToPercentageHorizontal(value) : value.toString().replace('px', '') + 'px';
 		},
 
 		/**
@@ -635,8 +682,8 @@
 		 * @private
 		 */
 		_pixelToPercentageHorizontal: function (value) {
-			var intValue = parseInt( value.toString().replace('px', ''), 10),
-				intValueO = parseInt( $(this.container).width().toString(), 10),
+			var intValue = parseInt(value.toString().replace('px', ''), 10),
+				intValueO = parseInt($(this.container).width().toString(), 10),
 				percent = (100 / intValueO) * intValue;
 
 			return percent + '%';
@@ -649,12 +696,10 @@
 		 * @private
 		 */
 		_colliding: function () {
-			var self = this;
-
-			if (self.options.handleCollision) {
+			if (this.options.handleCollision === true) {
 				var drag = $('.drag'),
 					drop = $('.drop'),
-					collides = drop.overlaps(drag, self.options.collisionTolerance);
+					collides = drop.overlaps(drag, this.options.collisionTolerance);
 
 				return (collides.targets.length > 0);
 			} else {
@@ -668,25 +713,8 @@
 		 * @param event
 		 */
 		_triggerUpdateItems: function (event) {
-			var self = this,
-				items = null;
-
-			if (self.mapItems.length) {
-				items = self.mapItems;
-			}
-
-			self._trigger('updated', event, [items]);
-		},
-
-		_handleItemClick: function (self, event) {
-			var self = this,
-				opts = self.options;
-
-			if (!$(event.target).hasClass('active')) {
-				self._setInactive($('.' + opts.drawHelperClass + '.active'));
-				self._setActive(event.target);
-				self._trigger('active', event, self.active);
-			}
+			var items = (this.mapItems.length) ? this.mapItems : null;
+			this._trigger('updated', event, [items]);
 		}
     });
 

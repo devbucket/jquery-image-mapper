@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.4.1 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.4.3 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -40,7 +40,7 @@
             autoHideHandles: true,
             elementClass: "ui-image-mapper",
             elementDisabledClass: "ui-image-mapper-disabled",
-            mapItemsListPercentage: false,
+            percentageValues: false,
             drawHelperClass: "ui-image-mapper-helper",
             drawHelperSpecialClass: "",
             drawHelperMinWidth: 20,
@@ -335,21 +335,21 @@
             });
         },
         _setMinWidth: function(el) {
-            var self = this, opts = self.options;
-            if ($(el).width() < opts.drawHelperMinWidth) {
+            var opts = this.options, minWidth = opts.drawHelperMinWidth >= 10 ? opts.drawHelperMinWidth : 10, minHeight = opts.drawHelperMinHeight >= 10 ? opts.drawHelperMinHeight : 10;
+            if ($(el).width() < minWidth) {
                 $(el).css({
-                    width: opts.drawHelperMinWidth + "px"
+                    width: minWidth + "px"
                 });
             }
-            if ($(el).height() < opts.drawHelperMinHeight) {
+            if ($(el).height() < minHeight) {
                 $(el).css({
-                    height: opts.drawHelperMinHeight + "px"
+                    height: minHeight + "px"
                 });
             }
         },
         _setActive: function(el) {
-            var self = this, opts = self.options;
-            self.active = $(el);
+            var opts = this.options;
+            this.active = $(el);
             $(el).css({
                 "z-index": opts.zIndexActive,
                 border: opts.borderActiveSize + " " + opts.borderActiveStyle + " " + opts.borderActiveColor,
@@ -357,7 +357,7 @@
             }).addClass("active");
         },
         _setInactive: function(el) {
-            var self = this, opts = self.options;
+            var opts = this.options;
             $(el).css({
                 "z-index": opts.zIndex,
                 border: opts.borderSize + " " + opts.borderStyle + " " + opts.borderColor,
@@ -365,14 +365,14 @@
             }).removeClass("active");
         },
         _setError: function(el) {
-            var self = this, opts = self.options;
+            var opts = this.options;
             $(el).css({
                 border: opts.borderActiveErrorSize + " " + opts.borderActiveErrorStyle + " " + opts.borderActiveErrorColor,
                 "background-color": opts.backgroundActiveErrorColor
             }).addClass("error");
         },
         _resetError: function(el) {
-            var self = this, opts = self.options;
+            var opts = this.options;
             $(el).css({
                 "z-index": opts.zIndexActive,
                 border: opts.borderActiveSize + " " + opts.borderActiveStyle + " " + opts.borderActiveColor,
@@ -380,7 +380,7 @@
             }).removeClass("error");
         },
         _setDraw: function(el) {
-            var self = this, opts = self.options;
+            var opts = this.options;
             $(el).css({
                 "z-index": opts.zIndex,
                 border: opts.borderDrawSize + " " + opts.borderDrawStyle + " " + opts.borderDrawColor,
@@ -388,91 +388,72 @@
             });
         },
         _setDrawError: function(el) {
-            var self = this, opts = self.options;
+            var opts = this.options;
             $(el).css({
                 border: opts.borderDrawErrorSize + " " + opts.borderDrawErrorStyle + " " + opts.borderDrawErrorColor,
                 "background-color": opts.backgroundDrawErrorColor
             });
         },
         _resetAll: function(el) {
-            var self = this;
             $(el).animate({
-                "z-index": self.options.zIndex,
+                "z-index": this.options.zIndex,
                 width: "0px",
                 height: "0px",
                 "border-color": "rgba(0,0,0,0)"
-            }, self.options.revertDuration, function() {});
+            }, this.options.revertDuration, function() {
+                $(el).remove();
+            });
         },
         _deleteActive: function(event) {
-            var self = this, opts = self.options;
-            if (self.active !== null) {
-                var $active = $(self.active);
-                self._deleteMapItem($active);
-                $active.remove();
-                self._triggerUpdateItems(event);
-                self.active = null;
-                opts.drawHelperSpecialClass = "";
-                self._trigger("inactive", event);
+            if (this.active !== null) {
+                this._deleteMapItem(this.active);
+                this.active.remove();
+                this.active = null;
+                this._triggerUpdateItems(event);
+                this._trigger("inactive", event);
             }
         },
         _saveMapItem: function(el, id, special) {
-            var self = this, opts = self.options, item = {};
+            var opts = this.options, item = {};
             if (typeof id === "undefined" || id === null) {
-                id = opts.drawHelperClass + "-" + (self.mapItems.length + 1);
+                id = opts.drawHelperClass + "-" + (this.mapItems.length + 1);
             }
             $(el).attr("id", id);
             item.id = id;
-            item.left = self._parseValue(el.css("left"));
-            item.top = self._parseValue(el.css("top"));
-            item.width = self._parseValue(el.css("width"));
-            item.height = self._parseValue(el.css("height"));
+            item.left = this._parseValue(el.css("left"));
+            item.top = this._parseValue(el.css("top"));
+            item.width = this._parseValue(el.css("width"));
+            item.height = this._parseValue(el.css("height"));
             if (opts.drawHelperSpecialClass !== "") {
                 item.special = opts.drawHelperSpecialClass;
             }
             if (typeof special !== "undefined") {
                 item.special = special;
             }
-            self.mapItems.push(item);
+            this.mapItems.push(item);
         },
         _deleteMapItem: function(el) {
-            var self = this, id = parseInt($(el).attr("data-id"), 10) - 1;
-            self.mapItems.splice(id, 1);
+            var id = parseInt($(el).attr("data-id"), 10) - 1;
+            this.mapItems.splice(id, 1);
         },
         _parseValue: function(value) {
-            var self = this;
-            if (self.options.mapItemsListPercentage === true) {
-                return self._pixelToPercentageHorizontal(value);
-            } else {
-                return value.toString().replace("px", "") + "px";
-            }
+            return this.options.percentageValues === true ? this._pixelToPercentageHorizontal(value) : value.toString().replace("px", "") + "px";
         },
         _pixelToPercentageHorizontal: function(value) {
             var intValue = parseInt(value.toString().replace("px", ""), 10), intValueO = parseInt($(this.container).width().toString(), 10), percent = 100 / intValueO * intValue;
             return percent + "%";
         },
         _colliding: function() {
-            var self = this;
-            if (self.options.handleCollision) {
-                var drag = $(".drag"), drop = $(".drop"), collides = drop.overlaps(drag, self.options.collisionTolerance);
+            if (this.options.handleCollision === true) {
+                var drag = $(".drag"), drop = $(".drop"), collides = drop.overlaps(drag, this.options.collisionTolerance);
                 return collides.targets.length > 0;
             } else {
                 return false;
             }
         },
         _triggerUpdateItems: function(event) {
-            var self = this, items = null;
-            if (self.mapItems.length) {
-                items = self.mapItems;
-            }
-            self._trigger("updated", event, [ items ]);
-        },
-        _handleItemClick: function(self, event) {
-            var self = this, opts = self.options;
-            if (!$(event.target).hasClass("active")) {
-                self._setInactive($("." + opts.drawHelperClass + ".active"));
-                self._setActive(event.target);
-                self._trigger("active", event, self.active);
-            }
+            var items = this.mapItems.length ? this.mapItems : null;
+            this._trigger("updated", event, [ items ]);
         }
     });
     $.extend($.ui.imageMapper, {
