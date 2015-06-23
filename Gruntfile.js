@@ -14,12 +14,13 @@ module.exports = function (grunt) {
 			' */\n',
 		concat: {
 			options: {
-				separator: ';\n',
-				stripBanners: true
+				separator: '\n\n',
+				stripBanners: false,
+				banner: '<%= banner %>\n'
 			},
 			dist: {
 				src: ['build/overlaps.js', 'build/image-mapper.js'],
-				dest: 'jquery.image-mapper.js'
+				dest: 'build/jquery.image-mapper.js'
 			}
 		},
 		uglify: {
@@ -31,7 +32,7 @@ module.exports = function (grunt) {
 					mangle: false
 				},
 				files: {
-					'jquery.image-mapper.js': ['jquery.image-mapper.js']
+					'jquery.image-mapper.js': ['build/jquery.image-mapper.js']
 				}
 			},
 			min: {

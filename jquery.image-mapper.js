@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.4.6 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.4.7 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -154,8 +154,11 @@
             return this.active;
         },
         toggleSpecial: function(newSpecial) {
-            $(this.active).removeClass(this.options.drawHelperSpecialClass).addClass(newSpecial).attr("data-special", newSpecial);
+            var id = parseInt($(this.active).attr("data-id"), 10) - 1;
+            $(this.active).removeClass($(this.active).attr("data-special")).addClass(newSpecial).attr("data-special", newSpecial);
             this.options.drawHelperSpecialClass = newSpecial;
+            this.mapItems[id].special = newSpecial;
+            this._triggerUpdateItems(null);
         },
         destroy: function() {
             var $img = this.element.find("img");
@@ -457,11 +460,11 @@
             return percent;
         },
         _pixelToPercentageHorizontal: function(value) {
-            var intValue = parseInt(value.toString().replace("px", ""), 10), intValueO = parseInt($(this.container).width().toString(), 10), percent = 100 / intValueO * intValue;
+            var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat($(this.container).width().toString()), percent = 100 / intValueO * intValue;
             return percent + "%";
         },
         _pixelToPercentageVertical: function(value) {
-            var intValue = parseInt(value.toString().replace("px", ""), 10), intValueO = parseInt($(this.container).height().toString(), 10), percent = 100 / intValueO * intValue;
+            var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat($(this.container).height().toString()), percent = 100 / intValueO * intValue;
             return percent + "%";
         },
         _colliding: function() {
