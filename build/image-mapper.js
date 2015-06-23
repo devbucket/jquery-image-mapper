@@ -99,6 +99,8 @@
 			// Create the helper
 			self.helper = $(self.elementTag).addClass(opts.drawHelperClass + ' drag');
 
+			self._trigger('init', self);
+
 			// Delete the active helper on pressing delete or back key
 			$('html').keyup(function (event) {
 				if (event.keyCode === 8 || event.keyCode === 46) {
