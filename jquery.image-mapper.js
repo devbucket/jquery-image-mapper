@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.4.3 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.4.5 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-06-22
+ * 2015-06-23
  */
 
 (function($) {
@@ -287,8 +287,8 @@
                         var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
                         self._resetError(ui.helper);
                         $(ui.helper).removeClass("drag").addClass("drop");
-                        self.mapItems[itemId].left = self._parseValue(ui.position.left);
-                        self.mapItems[itemId].top = self._parseValue(ui.position.top);
+                        self.mapItems[itemId].left = self._parseValue(ui.position.left, "horizontal");
+                        self.mapItems[itemId].top = self._parseValue(ui.position.top, "vertical");
                         self._triggerUpdateItems(ev);
                     }
                 }
@@ -320,8 +320,8 @@
                     if (!self._colliding()) {
                         $(ui.helper).removeClass("drag").addClass("drop");
                         var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
-                        self.mapItems[itemId].width = self._parseValue(ui.size.width);
-                        self.mapItems[itemId].height = self._parseValue(ui.size.height);
+                        self.mapItems[itemId].width = self._parseValue(ui.size.width, "horizontal");
+                        self.mapItems[itemId].height = self._parseValue(ui.size.height, "vertical");
                         self._triggerUpdateItems(ev);
                     } else {
                         $(ui.helper).animate({
@@ -420,10 +420,10 @@
             }
             $(el).attr("id", id);
             item.id = id;
-            item.left = this._parseValue(el.css("left"));
-            item.top = this._parseValue(el.css("top"));
-            item.width = this._parseValue(el.css("width"));
-            item.height = this._parseValue(el.css("height"));
+            item.left = this._parseValue(el.css("left"), "horizontal");
+            item.top = this._parseValue(el.css("top"), "vertical");
+            item.width = this._parseValue(el.css("width"), "horizontal");
+            item.height = this._parseValue(el.css("height"), "vertical");
             if (opts.drawHelperSpecialClass !== "") {
                 item.special = opts.drawHelperSpecialClass;
             }
@@ -436,11 +436,31 @@
             var id = parseInt($(el).attr("data-id"), 10) - 1;
             this.mapItems.splice(id, 1);
         },
-        _parseValue: function(value) {
-            return this.options.percentageValues === true ? this._pixelToPercentageHorizontal(value) : value.toString().replace("px", "") + "px";
+        _parseValue: function(value, orientation) {
+            var percent;
+            if (typeof orientation === "undefined") orientation = "horizontal";
+            if (this.options.percentageValues === true) {
+                switch (orientation) {
+                  case "horizontal":
+                  default:
+                    percent = this._pixelToPercentageHorizontal(value);
+                    break;
+
+                  case "vertical":
+                    percent = this._pixelToPercentageVertical(value);
+                    break;
+                }
+            } else {
+                percent = value.toString().replace("px", "") + "px";
+            }
+            return percent;
         },
         _pixelToPercentageHorizontal: function(value) {
             var intValue = parseInt(value.toString().replace("px", ""), 10), intValueO = parseInt($(this.container).width().toString(), 10), percent = 100 / intValueO * intValue;
+            return percent + "%";
+        },
+        _pixelToPercentageVertical: function(value) {
+            var intValue = parseInt(value.toString().replace("px", ""), 10), intValueO = parseInt($(this.container).height().toString(), 10), percent = 100 / intValueO * intValue;
             return percent + "%";
         },
         _colliding: function() {

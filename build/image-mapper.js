@@ -414,8 +414,8 @@
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 						self._resetError(ui.helper);
 						$(ui.helper).removeClass('drag').addClass('drop');
-						self.mapItems[itemId].left = self._parseValue(ui.position.left);
-						self.mapItems[itemId].top = self._parseValue(ui.position.top);
+						self.mapItems[itemId].left = self._parseValue(ui.position.left, 'horizontal');
+						self.mapItems[itemId].top = self._parseValue(ui.position.top, 'vertical');
 						self._triggerUpdateItems(ev);
 					}
 				}
@@ -465,8 +465,8 @@
 					if (!self._colliding()) {
 						$(ui.helper).removeClass('drag').addClass('drop');
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
-						self.mapItems[itemId].width = self._parseValue(ui.size.width);
-						self.mapItems[itemId].height = self._parseValue(ui.size.height);
+						self.mapItems[itemId].width = self._parseValue(ui.size.width, 'horizontal');
+						self.mapItems[itemId].height = self._parseValue(ui.size.height, 'vertical');
 						self._triggerUpdateItems(ev);
 					// ... otherwise animate back to former size.
 					} else {
@@ -638,10 +638,10 @@
 			$(el).attr('id', id);
 
 			item.id 	= id;
-			item.left 	= this._parseValue(el.css('left'));
-			item.top 	= this._parseValue(el.css('top'));
-			item.width 	= this._parseValue(el.css('width'));
-			item.height	= this._parseValue(el.css('height'));
+			item.left 	= this._parseValue(el.css('left'), 'horizontal');
+			item.top 	= this._parseValue(el.css('top'), 'vertical');
+			item.width 	= this._parseValue(el.css('width'), 'horizontal');
+			item.height	= this._parseValue(el.css('height'), 'vertical');
 
 			if (opts.drawHelperSpecialClass !== '') {
 				item.special = opts.drawHelperSpecialClass
@@ -665,17 +665,37 @@
 		},
 
 		/**
-		 * Parse the resize and drag values to pixel or percentage.
+		 * Parse the resize and drag values to percent.
 		 *
 		 * @param value
+		 * @param orientation
 		 * @returns {*}
 		 */
-		_parseValue: function (value) {
-			return (this.options.percentageValues === true) ? this._pixelToPercentageHorizontal(value) : value.toString().replace('px', '') + 'px';
+		_parseValue: function (value, orientation) {
+			var percent;
+
+			if (typeof orientation === 'undefined')
+				orientation = 'horizontal';
+
+			if (this.options.percentageValues === true) {
+				switch (orientation) {
+					case 'horizontal':
+					default:
+						percent = this._pixelToPercentageHorizontal(value);
+						break;
+					case 'vertical':
+						percent = this._pixelToPercentageVertical(value);
+						break;
+				}
+			} else {
+				percent = value.toString().replace('px', '') + 'px';
+			}
+
+			return percent;
 		},
 
 		/**
-		 * Calculate the percentage value from pixel value depending on the plugin element dimensions.
+		 * Calculate the percentage value from pixel value depending on the plugin element horizontal dimensions.
 		 *
 		 * @param value
 		 * @returns {string}
@@ -684,6 +704,21 @@
 		_pixelToPercentageHorizontal: function (value) {
 			var intValue = parseInt(value.toString().replace('px', ''), 10),
 				intValueO = parseInt($(this.container).width().toString(), 10),
+				percent = (100 / intValueO) * intValue;
+
+			return percent + '%';
+		},
+
+		/**
+		 * Calculate the percentage value from pixel value depending on the plugin element vertical dimensions.
+		 *
+		 * @param value
+		 * @returns {string}
+		 * @private
+		 */
+		_pixelToPercentageVertical: function (value) {
+			var intValue = parseInt(value.toString().replace('px', ''), 10),
+				intValueO = parseInt($(this.container).height().toString(), 10),
 				percent = (100 / intValueO) * intValue;
 
 			return percent + '%';

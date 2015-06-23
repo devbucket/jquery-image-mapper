@@ -1,15 +1,16 @@
 {
   "name": "jquery-image-mapper",
   "title": "jQuery Image Mapper",
-  "version": "0.4.3",
+  "version": "0.4.5",
   "description": "Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/devbucket/jquery-image-mapper.git"
+    "url": "https://github.com/shopgate/jquery-image-mapper"
   },
   "keywords": [
     "jQuery",
     "jquery-plugin",
+    "ecosystem:jquery",
     "imagemap",
     "html5"
   ],
