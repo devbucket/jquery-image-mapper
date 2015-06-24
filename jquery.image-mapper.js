@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.4.7 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.4.9 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-06-23
+ * 2015-06-24
  */
 
 (function($) {
@@ -32,7 +32,8 @@
 
 (function($) {
     "use strict";
-    $.widget("ui.imageMapper", $.ui.mouse, {
+    var pluginName = "imageMapper";
+    $.widget("ui." + pluginName, $.ui.mouse, {
         options: {
             data: [],
             handleCollision: true,
@@ -73,6 +74,7 @@
         },
         _init: function() {
             var self = this, opts = self.options;
+            self.pluginName = pluginName;
             self.elementTag = "<" + opts.objectTypes + "/>";
             self.mapItems = [];
             self.dragged = true;
@@ -160,17 +162,15 @@
             this.mapItems[id].special = newSpecial;
             this._triggerUpdateItems(null);
         },
+        addMapData: function(data) {
+            if (typeof data !== "unedfined" && this.active !== null) {
+                var id = parseInt($(this.active).attr("data-id"), 10) - 1;
+                this.mapItems[id].push(data);
+                this._triggerUpdateItems(null);
+            }
+        },
         destroy: function() {
-            var $img = this.element.find("img");
-            this.element.removeClass(this.options.elementClass + " " + this.options.elementDisabledClass).css({
-                position: ""
-            });
-            if ("" == this.element.attr("style")) {
-                this.element.removeAttr("style");
-            }
-            if ("" == this.element.attr("class")) {
-                this.element.removeAttr("class");
-            }
+            var self = this, $img = this.element.find("img");
             $img.css({
                 position: "",
                 "z-index": "",
@@ -179,9 +179,26 @@
             if ("" == $img.attr("style")) {
                 $img.removeAttr("style");
             }
-            this.container.remove();
+            $(this.element).removeClass(this.options.elementClass).removeClass(this.options.elementDisabledClass).css({
+                position: ""
+            });
+            if ("" == this.element.attr("style")) {
+                this.element.removeAttr("style");
+            }
+            if ("" == this.element.attr("class")) {
+                this.element.removeAttr("class");
+            }
+            $(this.element).each(function() {
+                var dataAttr = "ui" + self.pluginName.charAt(0).toUpperCase() + self.pluginName.slice(1);
+                $(this).removeData(dataAttr);
+            });
+            $("." + this.options.drawHelperContainerClass).remove();
             this.mapItems.splice(0, this.mapItems.length);
+            this.dragged = false;
+            this.active = null;
             this._mouseDestroy();
+            this._trigger("destroy");
+            $.Widget.prototype.destroy.apply(this, arguments);
         },
         _mouseStart: function(event) {
             var self = this, opts = self.options;

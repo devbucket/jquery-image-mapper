@@ -1,7 +1,9 @@
 (function ($) {
 	"use strict";
 
-    $.widget('ui.imageMapper', $.ui.mouse, {
+	var pluginName = 'imageMapper';
+
+    $.widget('ui.' + pluginName, $.ui.mouse, {
 
 		// Default options.
 		options: {
@@ -51,6 +53,8 @@
         _init: function () {
 			var self = this,
 				opts = self.options;
+
+			self.pluginName = pluginName;
 
 			self.elementTag = '<' + opts.objectTypes + '/>';
 
@@ -202,22 +206,25 @@
 		},
 
 		/**
+		 * Appends a custom data object to the active map item.
+		 *
+		 * @param data
+		 */
+		addMapData: function (data) {
+			if (typeof data !== 'unedfined' && this.active !== null) {
+				var id = parseInt($(this.active).attr('data-id'), 10) - 1;
+
+				this.mapItems[id].push(data);
+				this._triggerUpdateItems(null);
+			}
+		},
+
+		/**
 		 * Destroy the plugin.
 		 */
         destroy: function () {
-			var $img = this.element.find('img');
-
-            this.element
-				.removeClass(this.options.elementClass + ' ' + this.options.elementDisabledClass)
-				.css({ 'position': '' });
-
-			if ('' == this.element.attr('style')) {
-				this.element.removeAttr('style');
-			}
-
-			if ('' == this.element.attr('class')) {
-				this.element.removeAttr('class');
-			}
+			var self = this,
+				$img = this.element.find('img');
 
 			$img.css({
 				'position': '',
@@ -229,9 +236,34 @@
 				$img.removeAttr('style');
 			}
 
-			this.container.remove();
+			$(this.element)
+				.removeClass(this.options.elementClass)
+				.removeClass(this.options.elementDisabledClass)
+				.css({ 'position': '' });
+
+			if ('' == this.element.attr('style')) {
+				this.element.removeAttr('style');
+			}
+
+			if ('' == this.element.attr('class')) {
+				this.element.removeAttr('class');
+			}
+
+			$(this.element).each(function () {
+				var dataAttr = 'ui' + self.pluginName.charAt(0).toUpperCase() + self.pluginName.slice(1);
+				$(this).removeData(dataAttr)
+			});
+
+			$('.' + this.options.drawHelperContainerClass).remove();
+
 			this.mapItems.splice(0, this.mapItems.length);
-            this._mouseDestroy();
+			this.dragged = false;
+			this.active = null;
+			this._mouseDestroy();
+
+			this._trigger('destroy');
+
+			$.Widget.prototype.destroy.apply( this, arguments );
         },
 
 		/**
