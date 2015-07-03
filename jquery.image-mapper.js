@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.4.9 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.5.5 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-06-24
+ * 2015-07-03
  */
 
 (function($) {
@@ -12,15 +12,15 @@
         var elems = {
             targets: [],
             hits: []
-        };
-        var tol = typeof tolerance === "undefined" ? 1 : tolerance;
+        }, $obj = $(obj), tol = typeof tolerance === "undefined" ? 1 : tolerance;
         this.each(function() {
-            var bounds = $(this).offset();
-            bounds.right = bounds.left + $(this).outerWidth();
-            bounds.bottom = bounds.top + $(this).outerHeight();
-            var compare = $(obj).offset();
-            compare.right = compare.left + $(obj).outerWidth();
-            compare.bottom = compare.top + $(obj).outerHeight();
+            var $el = $(this);
+            var bounds = $el.offset();
+            bounds.right = bounds.left + $el.outerWidth();
+            bounds.bottom = bounds.top + $el.outerHeight();
+            var compare = $obj.offset();
+            compare.right = compare.left + $obj.outerWidth();
+            compare.bottom = compare.top + $obj.outerHeight();
             if (!(compare.right + tol < bounds.left || compare.left - tol > bounds.right || compare.bottom + tol < bounds.top || compare.top - tol > bounds.bottom)) {
                 elems.targets.push(this);
                 elems.hits.push(obj);
@@ -34,6 +34,8 @@
     "use strict";
     var pluginName = "imageMapper";
     $.widget("ui." + pluginName, $.ui.mouse, {
+        DIRECTION_HORIZONTAL: "horizontal",
+        DIRECTION_VERTICAL: "vertical",
         options: {
             data: [],
             handleCollision: true,
@@ -81,13 +83,21 @@
             self.active = null;
             self._mouseInit();
             self.element.addClass(opts.elementClass).css({
+                display: "inline-block",
                 position: "relative"
             });
-            $(self.element).find("img").css({
+            self.element.children("img").css({
                 position: "relative",
                 "z-index": 1,
                 "pointer-events": "none"
             });
+            if (opts.percentageValues) {
+                self.element.children("img").css({
+                    width: "100%",
+                    "max-width": "100%",
+                    height: "auto"
+                });
+            }
             self.container = $(self.elementTag).addClass(opts.drawHelperContainerClass).css({
                 position: "absolute",
                 "z-index": 2,
@@ -114,7 +124,7 @@
             self._setExistingData();
         },
         _setExistingData: function() {
-            var self = this, opts = self.options;
+            var self = this, opts = self.options, extra;
             if (opts.data.length) {
                 $.each(opts.data, function(index, item) {
                     var special = null, existingItem = $(self.elementTag).appendTo(self.container);
@@ -127,10 +137,10 @@
                     existingItem.css({
                         "z-index": opts.zIndex + (self.mapItems.length + 1),
                         position: "absolute",
-                        left: item.left,
-                        top: item.top,
-                        width: item.width,
-                        height: item.height
+                        left: self._parseValue(item.left, self.DIRECTION_HORIZONTAL),
+                        top: self._parseValue(item.top, self.DIRECTION_VERTICAL),
+                        width: self._parseValue(item.width, self.DIRECTION_HORIZONTAL),
+                        height: self._parseValue(item.height, self.DIRECTION_VERTICAL)
                     }).addClass(opts.drawHelperClass + " " + special + " drop").attr("data-id", self.mapItems.length + 1);
                     if (special !== null) {
                         existingItem.attr("data-special", special);
@@ -138,14 +148,22 @@
                     self._addDraggable(existingItem);
                     self._addResizable(existingItem);
                     existingItem.click(function(event) {
-                        if (!$(event.target).hasClass("active")) {
+                        var target = !$(event.target).hasClass(self.drawHelperClass) ? $(event.target).parent() : $(event.target);
+                        if (!target.hasClass("active")) {
                             self._setInactive($("." + opts.drawHelperClass + ".active"));
-                            self._setActive(event.target);
+                            self._setActive(target);
                             self._trigger("active", event, self.active);
                         }
                     });
+                    extra = item;
+                    delete extra["id"];
+                    delete extra["special"];
+                    delete extra["left"];
+                    delete extra["top"];
+                    delete extra["width"];
+                    delete extra["height"];
                     self._setInactive(existingItem);
-                    self._saveMapItem(existingItem, item.id, special);
+                    self._saveMapItem(existingItem, item.id, special, extra);
                 });
             }
         },
@@ -165,7 +183,7 @@
         addMapData: function(data) {
             if (typeof data !== "unedfined" && this.active !== null) {
                 var id = parseInt($(this.active).attr("data-id"), 10) - 1;
-                this.mapItems[id].push(data);
+                $.extend(this.mapItems[id], data);
                 this._triggerUpdateItems(null);
             }
         },
@@ -214,10 +232,10 @@
             self.helper.css({
                 "z-index": opts.zIndex + (self.mapItems.length + 1),
                 position: "absolute",
-                left: self.opos[0],
-                top: self.opos[1],
-                width: 0,
-                height: 0
+                left: self._parseValue(self.opos[0], self.DIRECTION_HORIZONTAL),
+                top: self._parseValue(self.opos[1], self.DIRECTION_VERTICAL),
+                width: self._parseValue(0, self.DIRECTION_HORIZONTAL),
+                height: self._parseValue(0, self.DIRECTION_VERTICAL)
             });
             self._setDraw(self.helper);
         },
@@ -232,10 +250,10 @@
                 x1 = tmp;
             }
             self.helper.css({
-                left: x1,
-                top: y1,
-                width: x2 - x1,
-                height: y2 - y1
+                left: self._parseValue(x1, self.DIRECTION_HORIZONTAL),
+                top: self._parseValue(y1, self.DIRECTION_VERTICAL),
+                width: self._parseValue(x2 - x1, self.DIRECTION_HORIZONTAL),
+                height: self._parseValue(y2 - y1, self.DIRECTION_VERTICAL)
             });
             self._trigger("drag", event);
             if (self._colliding()) {
@@ -264,9 +282,10 @@
                 self._addDraggable(mapItem);
                 self._addResizable(mapItem);
                 mapItem.attr("data-id", this.mapItems.length + 1).click(function(event) {
-                    if (!$(event.target).hasClass("active")) {
+                    var target = !$(event.target).hasClass(self.drawHelperClass) ? $(event.target).parent() : $(event.target);
+                    if (!target.hasClass("active")) {
                         self._setInactive($("." + opts.drawHelperClass + ".active"));
-                        self._setActive(event.target);
+                        self._setActive(target);
                         self._trigger("active", event, self.active);
                     }
                 });
@@ -308,8 +327,8 @@
                         var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
                         self._resetError(ui.helper);
                         $(ui.helper).removeClass("drag").addClass("drop");
-                        self.mapItems[itemId].left = self._parseValue(ui.position.left, "horizontal");
-                        self.mapItems[itemId].top = self._parseValue(ui.position.top, "vertical");
+                        self.mapItems[itemId].left = self._parseValue(ui.position.left, self.DIRECTION_HORIZONTAL);
+                        self.mapItems[itemId].top = self._parseValue(ui.position.top, self.DIRECTION_VERTICAL);
                         self._triggerUpdateItems(ev);
                     }
                 }
@@ -341,13 +360,13 @@
                     if (!self._colliding()) {
                         $(ui.helper).removeClass("drag").addClass("drop");
                         var itemId = parseInt($(ui.helper).attr("data-id"), 10) - 1;
-                        self.mapItems[itemId].width = self._parseValue(ui.size.width, "horizontal");
-                        self.mapItems[itemId].height = self._parseValue(ui.size.height, "vertical");
+                        self.mapItems[itemId].width = self._parseValue(ui.size.width, self.DIRECTION_HORIZONTAL);
+                        self.mapItems[itemId].height = self._parseValue(ui.size.height, self.DIRECTION_VERTICAL);
                         self._triggerUpdateItems(ev);
                     } else {
                         $(ui.helper).animate({
-                            width: ui.originalSize.width + "px",
-                            height: ui.originalSize.height + "px"
+                            width: self._parseValue(ui.originalSize.width, self.DIRECTION_HORIZONTAL),
+                            height: self._parseValue(ui.originalSize.height, self.DIRECTION_VERTICAL)
                         }, self.options.revertDuration, function() {
                             self._setActive(ui.helper);
                         });
@@ -359,12 +378,12 @@
             var opts = this.options, minWidth = opts.drawHelperMinWidth >= 10 ? opts.drawHelperMinWidth : 10, minHeight = opts.drawHelperMinHeight >= 10 ? opts.drawHelperMinHeight : 10;
             if ($(el).width() < minWidth) {
                 $(el).css({
-                    width: minWidth + "px"
+                    width: this._parseValue(minWidth, this.DIRECTION_HORIZONTAL)
                 });
             }
             if ($(el).height() < minHeight) {
                 $(el).css({
-                    height: minHeight + "px"
+                    height: this._parseValue(minHeight, this.DIRECTION_VERTICAL)
                 });
             }
         },
@@ -418,8 +437,8 @@
         _resetAll: function(el) {
             $(el).animate({
                 "z-index": this.options.zIndex,
-                width: "0px",
-                height: "0px",
+                width: this._parseValue(0, this.DIRECTION_HORIZONTAL),
+                height: this._parseValue(0, this.DIRECTION_VERTICAL),
                 "border-color": "rgba(0,0,0,0)"
             }, this.options.revertDuration, function() {
                 $(el).remove();
@@ -434,22 +453,25 @@
                 this._trigger("inactive", event);
             }
         },
-        _saveMapItem: function(el, id, special) {
+        _saveMapItem: function(el, id, special, extra) {
             var opts = this.options, item = {};
             if (typeof id === "undefined" || id === null) {
                 id = opts.drawHelperClass + "-" + (this.mapItems.length + 1);
             }
             $(el).attr("id", id);
             item.id = id;
-            item.left = this._parseValue(el.css("left"), "horizontal");
-            item.top = this._parseValue(el.css("top"), "vertical");
-            item.width = this._parseValue(el.css("width"), "horizontal");
-            item.height = this._parseValue(el.css("height"), "vertical");
+            item.left = this._parseValue(el.css("left"), this.DIRECTION_HORIZONTAL);
+            item.top = this._parseValue(el.css("top"), this.DIRECTION_VERTICAL);
+            item.width = this._parseValue(el.css("width"), this.DIRECTION_HORIZONTAL);
+            item.height = this._parseValue(el.css("height"), this.DIRECTION_VERTICAL);
             if (opts.drawHelperSpecialClass !== "") {
                 item.special = opts.drawHelperSpecialClass;
             }
             if (typeof special !== "undefined") {
                 item.special = special;
+            }
+            if (typeof extra !== "undefined" && extra.length !== 0) {
+                $.extend(item, extra);
             }
             this.mapItems.push(item);
         },
@@ -459,15 +481,15 @@
         },
         _parseValue: function(value, orientation) {
             var percent;
-            if (typeof orientation === "undefined") orientation = "horizontal";
+            if (typeof orientation === "undefined") orientation = this.DIRECTION_HORIZONTAL;
             if (this.options.percentageValues === true) {
                 switch (orientation) {
-                  case "horizontal":
+                  case this.DIRECTION_HORIZONTAL:
                   default:
                     percent = this._pixelToPercentageHorizontal(value);
                     break;
 
-                  case "vertical":
+                  case this.DIRECTION_VERTICAL:
                     percent = this._pixelToPercentageVertical(value);
                     break;
                 }
@@ -477,11 +499,11 @@
             return percent;
         },
         _pixelToPercentageHorizontal: function(value) {
-            var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat($(this.container).width().toString()), percent = 100 / intValueO * intValue;
+            var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat(this.element.children("img").width().toString()), percent = 100 / intValueO * intValue;
             return percent + "%";
         },
         _pixelToPercentageVertical: function(value) {
-            var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat($(this.container).height().toString()), percent = 100 / intValueO * intValue;
+            var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat(this.element.children("img").height().toString()), percent = 100 / intValueO * intValue;
             return percent + "%";
         },
         _colliding: function() {
