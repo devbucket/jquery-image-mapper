@@ -152,10 +152,10 @@
 						.css({
 							'z-index': (opts.zIndex + (self.mapItems.length + 1)),
 							'position': 'absolute',
-							'left': self._parseValue(item.left, self.DIRECTION_HORIZONTAL),
-							'top': self._parseValue(item.top, self.DIRECTION_VERTICAL),
-							'width': self._parseValue(item.width, self.DIRECTION_HORIZONTAL),
-							'height': self._parseValue(item.height, self.DIRECTION_VERTICAL)
+							'left': self._parseValue(item.left, self.DIRECTION_HORIZONTAL, true),
+							'top': self._parseValue(item.top, self.DIRECTION_VERTICAL, true),
+							'width': self._parseValue(item.width, self.DIRECTION_HORIZONTAL, true),
+							'height': self._parseValue(item.height, self.DIRECTION_VERTICAL, true)
 						})
 						.addClass(opts.drawHelperClass + ' ' + special + ' drop')
 						.attr('data-id', (self.mapItems.length + 1));
@@ -169,7 +169,7 @@
 
 					existingItem
 						.click(function (event) {
-							var target = !$(event.target).hasClass(self.drawHelperClass) ? $(event.target).parent() : $(event.target);
+							var target = !$(event.target).hasClass(opts.drawHelperClass) ? $(event.target).parent() : $(event.target);
 
 							if (!target.hasClass('active')) {
 								self._setInactive($('.' + opts.drawHelperClass + '.active'));
@@ -227,6 +227,15 @@
 			this.options.drawHelperSpecialClass = newSpecial;
 			this.mapItems[id].special = newSpecial;
 			this._triggerUpdateItems(null);
+		},
+
+		/**
+		 * Deletes the current active map.
+		 *
+		 * @param event
+		 */
+		deleteActive: function (event) {
+			this._deleteActive(event);
 		},
 
 		/**
@@ -415,7 +424,7 @@
 				mapItem
 					.attr('data-id', (this.mapItems.length + 1))
 					.click(function (event) {
-						var target = !$(event.target).hasClass(self.drawHelperClass) ? $(event.target).parent() : $(event.target);
+						var target = !$(event.target).hasClass(opts.drawHelperClass) ? $(event.target).parent() : $(event.target);
 
 						if (!target.hasClass('active')) {
 							self._setInactive($('.' + opts.drawHelperClass + '.active'));
@@ -738,29 +747,37 @@
 		 *
 		 * @param value
 		 * @param orientation
+		 * @param isPercentage
 		 * @returns {*}
 		 */
-		_parseValue: function (value, orientation) {
-			var percent;
+		_parseValue: function (value, orientation, isPercentage) {
+			var newValue;
 
 			if (typeof orientation === 'undefined')
 				orientation = this.DIRECTION_HORIZONTAL;
 
-			if (this.options.percentageValues === true) {
+			if (typeof isPercentage === 'undefined')
+				isPercentage = false;
+
+			if (this.options.percentageValues === true && !isPercentage) {
 				switch (orientation) {
 					case this.DIRECTION_HORIZONTAL:
 					default:
-						percent = this._pixelToPercentageHorizontal(value);
+						newValue = this._pixelToPercentageHorizontal(value);
 						break;
 					case this.DIRECTION_VERTICAL:
-						percent = this._pixelToPercentageVertical(value);
+						newValue = this._pixelToPercentageVertical(value);
 						break;
 				}
 			} else {
-				percent = value.toString().replace('px', '') + 'px';
+				if (isPercentage) {
+					newValue = value;
+				} else {
+					newValue = value.toString().replace('px', '') + 'px';
+				}
 			}
 
-			return percent;
+			return newValue;
 		},
 
 		/**

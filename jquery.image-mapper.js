@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.5.5 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.5.8 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-07-03
+ * 2015-07-06
  */
 
 (function($) {
@@ -137,10 +137,10 @@
                     existingItem.css({
                         "z-index": opts.zIndex + (self.mapItems.length + 1),
                         position: "absolute",
-                        left: self._parseValue(item.left, self.DIRECTION_HORIZONTAL),
-                        top: self._parseValue(item.top, self.DIRECTION_VERTICAL),
-                        width: self._parseValue(item.width, self.DIRECTION_HORIZONTAL),
-                        height: self._parseValue(item.height, self.DIRECTION_VERTICAL)
+                        left: self._parseValue(item.left, self.DIRECTION_HORIZONTAL, true),
+                        top: self._parseValue(item.top, self.DIRECTION_VERTICAL, true),
+                        width: self._parseValue(item.width, self.DIRECTION_HORIZONTAL, true),
+                        height: self._parseValue(item.height, self.DIRECTION_VERTICAL, true)
                     }).addClass(opts.drawHelperClass + " " + special + " drop").attr("data-id", self.mapItems.length + 1);
                     if (special !== null) {
                         existingItem.attr("data-special", special);
@@ -148,7 +148,7 @@
                     self._addDraggable(existingItem);
                     self._addResizable(existingItem);
                     existingItem.click(function(event) {
-                        var target = !$(event.target).hasClass(self.drawHelperClass) ? $(event.target).parent() : $(event.target);
+                        var target = !$(event.target).hasClass(opts.drawHelperClass) ? $(event.target).parent() : $(event.target);
                         if (!target.hasClass("active")) {
                             self._setInactive($("." + opts.drawHelperClass + ".active"));
                             self._setActive(target);
@@ -179,6 +179,9 @@
             this.options.drawHelperSpecialClass = newSpecial;
             this.mapItems[id].special = newSpecial;
             this._triggerUpdateItems(null);
+        },
+        deleteActive: function(event) {
+            this._deleteActive(event);
         },
         addMapData: function(data) {
             if (typeof data !== "unedfined" && this.active !== null) {
@@ -282,7 +285,7 @@
                 self._addDraggable(mapItem);
                 self._addResizable(mapItem);
                 mapItem.attr("data-id", this.mapItems.length + 1).click(function(event) {
-                    var target = !$(event.target).hasClass(self.drawHelperClass) ? $(event.target).parent() : $(event.target);
+                    var target = !$(event.target).hasClass(opts.drawHelperClass) ? $(event.target).parent() : $(event.target);
                     if (!target.hasClass("active")) {
                         self._setInactive($("." + opts.drawHelperClass + ".active"));
                         self._setActive(target);
@@ -479,24 +482,29 @@
             var id = parseInt($(el).attr("data-id"), 10) - 1;
             this.mapItems.splice(id, 1);
         },
-        _parseValue: function(value, orientation) {
-            var percent;
+        _parseValue: function(value, orientation, isPercentage) {
+            var newValue;
             if (typeof orientation === "undefined") orientation = this.DIRECTION_HORIZONTAL;
-            if (this.options.percentageValues === true) {
+            if (typeof isPercentage === "undefined") isPercentage = false;
+            if (this.options.percentageValues === true && !isPercentage) {
                 switch (orientation) {
                   case this.DIRECTION_HORIZONTAL:
                   default:
-                    percent = this._pixelToPercentageHorizontal(value);
+                    newValue = this._pixelToPercentageHorizontal(value);
                     break;
 
                   case this.DIRECTION_VERTICAL:
-                    percent = this._pixelToPercentageVertical(value);
+                    newValue = this._pixelToPercentageVertical(value);
                     break;
                 }
             } else {
-                percent = value.toString().replace("px", "") + "px";
+                if (isPercentage) {
+                    newValue = value;
+                } else {
+                    newValue = value.toString().replace("px", "") + "px";
+                }
             }
-            return percent;
+            return newValue;
         },
         _pixelToPercentageHorizontal: function(value) {
             var intValue = parseFloat(value.toString().replace("px", "")), intValueO = parseFloat(this.element.children("img").width().toString()), percent = 100 / intValueO * intValue;
