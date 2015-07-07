@@ -12,7 +12,7 @@
 		options: {
 			data: [],
 			handleCollision: true,
-			collisionTolerance: 1,
+			collisionTolerance: 0,
 			autoHideHandles: true,
 			elementClass: 'ui-image-mapper',
 			elementDisabledClass: 'ui-image-mapper-disabled',
@@ -408,6 +408,8 @@
 			if (opts.disabled)
 				return false;
 
+			self._setMinWidth(self.helper);
+
 			// If colliding, remove the area with animation
 			if (self._colliding()) {
 				self._resetAll(self.helper);
@@ -416,12 +418,11 @@
 			} else {
 				mapItem = self.helper.clone().appendTo(self.container);
 
-				self._setMinWidth(mapItem);
-				self._setActive(mapItem);
-
 				mapItem
 					.removeClass('drag')
 					.addClass(opts.drawHelperSpecialClass + ' drop');
+
+				self._setActive(mapItem);
 
 				if (opts.drawHelperSpecialClass !== '') {
 					special = opts.drawHelperSpecialClass;
@@ -498,11 +499,12 @@
 					if (!self._colliding()) {
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 						self._resetError(ui.helper);
-						$(ui.helper).removeClass('drag').addClass('drop');
 						self.mapItems[itemId].left = self._parseValue(ui.position.left, self.DIRECTION_HORIZONTAL);
 						self.mapItems[itemId].top = self._parseValue(ui.position.top, self.DIRECTION_VERTICAL);
 						self._triggerUpdateItems(ev);
 					}
+
+					$(ui.helper).removeClass('drag').addClass('drop');
 				}
 			});
 		},
@@ -548,7 +550,6 @@
 				stop: function (ev, ui) {
 					// If not colliding with others, stay resized ...
 					if (!self._colliding()) {
-						$(ui.helper).removeClass('drag').addClass('drop');
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 						self.mapItems[itemId].width = self._parseValue(ui.size.width, self.DIRECTION_HORIZONTAL);
 						self.mapItems[itemId].height = self._parseValue(ui.size.height, self.DIRECTION_VERTICAL);
@@ -562,6 +563,8 @@
 							self._setActive(ui.helper);
 						});
 					}
+
+					$(ui.helper).removeClass('drag').addClass('drop');
 				}
 			});
 		},
@@ -832,9 +835,11 @@
 			if (this.options.handleCollision === true) {
 				var drag = $('.drag'),
 					drop = $('.drop'),
-					collides = drop.overlaps(drag, this.options.collisionTolerance);
+					container = $(this.container),
+					collides = drop.overlaps(drag, this.options.collisionTolerance),
+					collidesContainer = container.overlaps(drag, this.options.collisionTolerance, true);
 
-				return (collides.targets.length > 0);
+				return (collides.targets.length > 0 || collidesContainer.targets.length > 0);
 			} else {
 				return false;
 			}

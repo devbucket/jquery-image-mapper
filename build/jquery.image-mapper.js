@@ -1,4 +1,4 @@
-/* jQuery Image Mapper v0.5.9 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.6.0 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
@@ -9,30 +9,39 @@
 (function ($) {
 	"use strict";
 
-	$.fn.overlaps = function(obj, tolerance) {
+	$.fn.overlaps = function(obj, tolerance, reverse) {
 		var elems = {targets: [], hits:[]},
 			$obj = $(obj),
-			tol = (typeof tolerance === "undefined") ? 1 : tolerance;
+			tol = (typeof tolerance === "undefined") ? 1 : tolerance,
+			rev = (typeof reverse === "undefined" && typeof reverse !== "boolean") ? false : reverse;
 
 		this.each(function() {
 			var $el = $(this);
 
 			// Calculate the bounds
-			var bounds = $el.offset();
-			bounds.right = bounds.left + $el.outerWidth();
-			bounds.bottom = bounds.top + $el.outerHeight();
+			var bounds 		= $el.offset();
+			bounds.right 	= bounds.left + $el.outerWidth();
+			bounds.bottom 	= bounds.top + $el.outerHeight();
 
 			// Calculate the compares
-			var compare = $obj.offset();
-			compare.right = compare.left + $obj.outerWidth();
-			compare.bottom = compare.top + $obj.outerHeight();
+			var compare 	= $obj.offset();
+			compare.right 	= compare.left + $obj.outerWidth();
+			compare.bottom 	= compare.top + $obj.outerHeight();
 
-			if ( ! (
-				(compare.right+tol) < bounds.left ||
-				(compare.left-tol) > bounds.right ||
-				(compare.bottom+tol) < bounds.top ||
-				(compare.top-tol) > bounds.bottom)
-			) {
+			// Calculate the real compare values
+			var compRight 	= compare.right + tol,
+				compLeft 	= compare.left - tol,
+				compBottom 	= compare.bottom + tol,
+				compTop 	= compare.top - tol;
+
+			// Compare it.
+			var collapsing = !(compRight < bounds.left || compLeft > bounds.right || compBottom < bounds.top || compTop > bounds.bottom);
+
+			if (rev) {
+				collapsing = (compLeft < bounds.left || compRight > bounds.right || compTop < bounds.top || compBottom > bounds.bottom);
+			}
+
+			if (collapsing) {
 				elems.targets.push(this);
 				elems.hits.push(obj);
 			}
@@ -57,7 +66,7 @@
 		options: {
 			data: [],
 			handleCollision: true,
-			collisionTolerance: 1,
+			collisionTolerance: 0,
 			autoHideHandles: true,
 			elementClass: 'ui-image-mapper',
 			elementDisabledClass: 'ui-image-mapper-disabled',
@@ -453,6 +462,8 @@
 			if (opts.disabled)
 				return false;
 
+			self._setMinWidth(self.helper);
+
 			// If colliding, remove the area with animation
 			if (self._colliding()) {
 				self._resetAll(self.helper);
@@ -461,12 +472,11 @@
 			} else {
 				mapItem = self.helper.clone().appendTo(self.container);
 
-				self._setMinWidth(mapItem);
-				self._setActive(mapItem);
-
 				mapItem
 					.removeClass('drag')
 					.addClass(opts.drawHelperSpecialClass + ' drop');
+
+				self._setActive(mapItem);
 
 				if (opts.drawHelperSpecialClass !== '') {
 					special = opts.drawHelperSpecialClass;
@@ -543,11 +553,12 @@
 					if (!self._colliding()) {
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 						self._resetError(ui.helper);
-						$(ui.helper).removeClass('drag').addClass('drop');
 						self.mapItems[itemId].left = self._parseValue(ui.position.left, self.DIRECTION_HORIZONTAL);
 						self.mapItems[itemId].top = self._parseValue(ui.position.top, self.DIRECTION_VERTICAL);
 						self._triggerUpdateItems(ev);
 					}
+
+					$(ui.helper).removeClass('drag').addClass('drop');
 				}
 			});
 		},
@@ -593,7 +604,6 @@
 				stop: function (ev, ui) {
 					// If not colliding with others, stay resized ...
 					if (!self._colliding()) {
-						$(ui.helper).removeClass('drag').addClass('drop');
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
 						self.mapItems[itemId].width = self._parseValue(ui.size.width, self.DIRECTION_HORIZONTAL);
 						self.mapItems[itemId].height = self._parseValue(ui.size.height, self.DIRECTION_VERTICAL);
@@ -607,6 +617,8 @@
 							self._setActive(ui.helper);
 						});
 					}
+
+					$(ui.helper).removeClass('drag').addClass('drop');
 				}
 			});
 		},
@@ -877,9 +889,11 @@
 			if (this.options.handleCollision === true) {
 				var drag = $('.drag'),
 					drop = $('.drop'),
-					collides = drop.overlaps(drag, this.options.collisionTolerance);
+					container = $(this.container),
+					collides = drop.overlaps(drag, this.options.collisionTolerance),
+					collidesContainer = container.overlaps(drag, this.options.collisionTolerance, true);
 
-				return (collides.targets.length > 0);
+				return (collides.targets.length > 0 || collidesContainer.targets.length > 0);
 			} else {
 				return false;
 			}
