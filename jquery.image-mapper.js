@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.5.8 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.5.9 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-07-06
+ * 2015-07-07
  */
 
 (function($) {
@@ -106,19 +106,26 @@
                 width: "100%",
                 height: "100%",
                 overflow: "hidden"
-            }).appendTo(self.element).click(function(event) {
-                if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
+            }).appendTo(self.element);
+            self.helper = $(self.elementTag).addClass(opts.drawHelperClass + " drag");
+            self._trigger("init", self);
+            $(document).on("keyup.imageMapper", function(event) {
+                if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
+                    event.preventDefault();
+                    self._deleteActive(event);
+                }
+            });
+            $(document).on("keydown.imageMapper", function(event) {
+                if ((event.keyCode === 8 || event.keyCode === 4) && self.active) {
+                    event.preventDefault();
+                }
+            });
+            $(document).on("click.imageMapper", function(event) {
+                if (!$(event.target).hasClass(opts.drawHelperClass)) {
                     self._setInactive($("." + opts.drawHelperClass + ".active"));
                     self.active = null;
                     opts.drawHelperSpecialClass = "";
                     self._trigger("inactive", event);
-                }
-            });
-            self.helper = $(self.elementTag).addClass(opts.drawHelperClass + " drag");
-            self._trigger("init", self);
-            $("html").keyup(function(event) {
-                if (event.keyCode === 8 || event.keyCode === 46) {
-                    self._deleteActive(event);
                 }
             });
             self._setExistingData();
@@ -192,6 +199,7 @@
         },
         destroy: function() {
             var self = this, $img = this.element.find("img");
+            $(document).off(".imageMapper");
             $img.css({
                 position: "",
                 "z-index": "",

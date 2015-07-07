@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.5.8 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.5.9 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-07-06
+ * 2015-07-07
  */
 
 (function ($) {
@@ -147,25 +147,35 @@
 					'height': '100%',
 					'overflow': 'hidden'
 				})
-				.appendTo(self.element)
-				.click(function (event) {
-					if ($(event.target).hasClass(opts.drawHelperContainerClass)) {
-						self._setInactive($('.' + opts.drawHelperClass + '.active'));
-						self.active = null;
-						opts.drawHelperSpecialClass = '';
-						self._trigger('inactive', event);
-					}
-				});
+				.appendTo(self.element);
 
 			// Create the helper
 			self.helper = $(self.elementTag).addClass(opts.drawHelperClass + ' drag');
 
 			self._trigger('init', self);
 
-			// Delete the active helper on pressing delete or back key
-			$('html').keyup(function (event) {
-				if (event.keyCode === 8 || event.keyCode === 46) {
+			// Delete the active helper on pressing delete or backspace
+			$(document).on('keyup.imageMapper', function (event) {
+				if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
+					event.preventDefault();
 					self._deleteActive(event);
+				}
+			});
+
+			// Prevent default behavior of the backspace and delete button
+			$(document).on('keydown.imageMapper', function (event) {
+				if ((event.keyCode === 8 || event.keyCode === 4) && self.active) {
+					event.preventDefault();
+				}
+			});
+
+			// Deactivate element on click somewhere else
+			$(document).on('click.imageMapper', function (event) {
+				if (!$(event.target).hasClass(opts.drawHelperClass)) {
+					self._setInactive($('.' + opts.drawHelperClass + '.active'));
+					self.active = null;
+					opts.drawHelperSpecialClass = '';
+					self._trigger('inactive', event);
 				}
 			});
 
@@ -303,6 +313,8 @@
         destroy: function () {
 			var self = this,
 				$img = this.element.find('img');
+
+			$(document).off('.imageMapper');
 
 			$img.css({
 				'position': '',
