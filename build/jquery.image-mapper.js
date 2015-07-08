@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.6.0 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.6.4 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-07-07
+ * 2015-07-08
  */
 
 (function ($) {
@@ -57,14 +57,16 @@
 
 	var pluginName = 'imageMapper';
 
-    $.widget('ui.' + pluginName, $.ui.mouse, {
+	$.widget('ui.' + pluginName, $.ui.mouse, {
 
 		DIRECTION_HORIZONTAL: 'horizontal',
 		DIRECTION_VERTICAL: 'vertical',
 
 		// Default options.
 		options: {
+			scopeObject: $(document),
 			data: [],
+			clickIgnoreClass: 'ui-image-mapper-click-ignore',
 			handleCollision: true,
 			collisionTolerance: 0,
 			autoHideHandles: true,
@@ -107,7 +109,7 @@
 		 *
 		 * @private
 		 */
-        _init: function () {
+		_init: function () {
 			var self = this,
 				opts = self.options;
 
@@ -117,7 +119,7 @@
 
 			// Set up the plugin
 			self.mapItems = [];
-			self.dragged = true;
+			self.dragged = false;
 			self.active = null;
 			self._mouseInit();
 
@@ -146,7 +148,7 @@
 
 			// Create the maps container
 			self.container = $(self.elementTag)
-                .addClass(opts.drawHelperContainerClass)
+				.addClass(opts.drawHelperContainerClass)
 				.css({
 					'position': 'absolute',
 					'z-index': 2,
@@ -163,6 +165,10 @@
 
 			self._trigger('init', self);
 
+			$('.' + opts.clickIgnoreClass).find('*').each(function () {
+				$(this).addClass(opts.clickIgnoreClass);
+			});
+
 			// Delete the active helper on pressing delete or backspace
 			$(document).on('keyup.imageMapper', function (event) {
 				if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
@@ -173,14 +179,14 @@
 
 			// Prevent default behavior of the backspace and delete button
 			$(document).on('keydown.imageMapper', function (event) {
-				if ((event.keyCode === 8 || event.keyCode === 4) && self.active) {
+				if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
 					event.preventDefault();
 				}
 			});
 
 			// Deactivate element on click somewhere else
-			$(document).on('click.imageMapper', function (event) {
-				if (!$(event.target).hasClass(opts.drawHelperClass)) {
+			opts.scopeObject.on('mouseup.imageMapper', function (event) {
+				if (!$(event.target).hasClass(opts.drawHelperClass) && !self._clickedIgnoredItem(event) && !self.dragged) {
 					self._setInactive($('.' + opts.drawHelperClass + '.active'));
 					self.active = null;
 					opts.drawHelperSpecialClass = '';
@@ -189,6 +195,16 @@
 			});
 
 			self._setExistingData();
+		},
+
+		/**
+		 * Checks if the click goes on an ignored item.
+		 *
+		 * @param event
+		 * @returns {boolean}
+		 */
+		_clickedIgnoredItem: function (event) {
+			return $(event.target).hasClass(this.options.clickIgnoreClass);
 		},
 
 		/**
@@ -319,17 +335,26 @@
 		/**
 		 * Destroy the plugin.
 		 */
-        destroy: function () {
+		destroy: function () {
 			var self = this,
-				$img = this.element.find('img');
+				$img = this.element.children('img');
 
 			$(document).off('.imageMapper');
+			self.options.scopeObject.off('.imageMapper');
 
 			$img.css({
 				'position': '',
 				'z-index': '',
 				'pointer-events': ''
 			});
+
+			if (this.options.percentageValues) {
+				this.element.children('img').css({
+					'width': '',
+					'max-width': '',
+					'height': ''
+				})
+			}
 
 			if ('' == $img.attr('style')) {
 				$img.removeAttr('style');
@@ -360,17 +385,21 @@
 			this.active = null;
 			this._mouseDestroy();
 
+			delete this.container;
+			delete this.helper;
+			delete this.active;
+
 			this._trigger('destroy');
 
 			$.Widget.prototype.destroy.apply( this, arguments );
-        },
+		},
 
 		/**
 		 * Handle mouse start.
 		 *
 		 * @param event
 		 */
-        _mouseStart: function (event) {
+		_mouseStart: function (event) {
 			var self = this,
 				opts = self.options;
 
@@ -388,7 +417,7 @@
 			self._trigger('start', event, self.helper);
 			self._setInactive($('.' + opts.drawHelperClass + '.active'));
 
-            $(self.container).append(self.helper);
+			$(self.container).append(self.helper);
 
 			self.helper.css({
 				'z-index': (opts.zIndex + (self.mapItems.length + 1)),
@@ -400,7 +429,7 @@
 			});
 
 			self._setDraw(self.helper);
-        },
+		},
 
 		/**
 		 * Handle mouse drag.
@@ -408,24 +437,24 @@
 		 * @param event
 		 * @returns {boolean}
 		 */
-        _mouseDrag: function (event) {
+		_mouseDrag: function (event) {
 			var self = this;
 
 			self.dragged = true;
 
-            if (self.options.disabled)
-                return false;
+			if (self.options.disabled)
+				return false;
 
 			var x1 = (self.opos[0]+2),
 				y1 = (self.opos[1]+2),
 				x2 = (event.pageX - self.elPos.left),
 				y2 = (event.pageY - self.elPos.top);
 
-            if (x1 > x2) {
-                var tmp = x2;
-                x2 = x1;
-                x1 = tmp;
-            }
+			if (x1 > x2) {
+				var tmp = x2;
+				x2 = x1;
+				x1 = tmp;
+			}
 
 			self.helper.css({
 				'left': self._parseValue(x1, self.DIRECTION_HORIZONTAL),
@@ -442,8 +471,8 @@
 				self._setDraw(self.helper);
 			}
 
-            return false;
-        },
+			return false;
+		},
 
 		/**
 		 * Handle mouse stop.
@@ -451,7 +480,7 @@
 		 * @param event
 		 * @returns {boolean}
 		 */
-        _mouseStop: function (event) {
+		_mouseStop: function (event) {
 			var self = this,
 				opts = self.options,
 				special = null,
@@ -468,15 +497,15 @@
 			if (self._colliding()) {
 				self._resetAll(self.helper);
 
-			// if not colliding, place it.
+				// if not colliding, place it.
 			} else {
 				mapItem = self.helper.clone().appendTo(self.container);
+
+				self._setActive(mapItem);
 
 				mapItem
 					.removeClass('drag')
 					.addClass(opts.drawHelperSpecialClass + ' drop');
-
-				self._setActive(mapItem);
 
 				if (opts.drawHelperSpecialClass !== '') {
 					special = opts.drawHelperSpecialClass;
@@ -509,8 +538,8 @@
 				'pointer-events': 'auto'
 			});
 
-            return false;
-        },
+			return false;
+		},
 
 		/**
 		 * Add the jQuery UI draggable plugin to the element.
@@ -608,7 +637,7 @@
 						self.mapItems[itemId].width = self._parseValue(ui.size.width, self.DIRECTION_HORIZONTAL);
 						self.mapItems[itemId].height = self._parseValue(ui.size.height, self.DIRECTION_VERTICAL);
 						self._triggerUpdateItems(ev);
-					// ... otherwise animate back to former size.
+						// ... otherwise animate back to former size.
 					} else {
 						$(ui.helper).animate({
 							'width': self._parseValue(ui.originalSize.width, self.DIRECTION_HORIZONTAL),
@@ -908,10 +937,10 @@
 			var items = (this.mapItems.length) ? this.mapItems : null;
 			this._trigger('updated', event, [items]);
 		}
-    });
+	});
 
-    $.extend($.ui.imageMapper, {
-        defaults: $.extend({}, $.ui.mouse.defaults)
-    });
+	$.extend($.ui.imageMapper, {
+		defaults: $.extend({}, $.ui.mouse.defaults)
+	});
 
 })(jQuery);

@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.6.0 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.6.4 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-07-07
+ * 2015-07-08
  */
 
 (function($) {
@@ -42,7 +42,9 @@
         DIRECTION_HORIZONTAL: "horizontal",
         DIRECTION_VERTICAL: "vertical",
         options: {
+            scopeObject: $(document),
             data: [],
+            clickIgnoreClass: "ui-image-mapper-click-ignore",
             handleCollision: true,
             collisionTolerance: 0,
             autoHideHandles: true,
@@ -84,7 +86,7 @@
             self.pluginName = pluginName;
             self.elementTag = "<" + opts.objectTypes + "/>";
             self.mapItems = [];
-            self.dragged = true;
+            self.dragged = false;
             self.active = null;
             self._mouseInit();
             self.element.addClass(opts.elementClass).css({
@@ -114,6 +116,9 @@
             }).appendTo(self.element);
             self.helper = $(self.elementTag).addClass(opts.drawHelperClass + " drag");
             self._trigger("init", self);
+            $("." + opts.clickIgnoreClass).find("*").each(function() {
+                $(this).addClass(opts.clickIgnoreClass);
+            });
             $(document).on("keyup.imageMapper", function(event) {
                 if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
                     event.preventDefault();
@@ -121,12 +126,12 @@
                 }
             });
             $(document).on("keydown.imageMapper", function(event) {
-                if ((event.keyCode === 8 || event.keyCode === 4) && self.active) {
+                if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
                     event.preventDefault();
                 }
             });
-            $(document).on("click.imageMapper", function(event) {
-                if (!$(event.target).hasClass(opts.drawHelperClass)) {
+            opts.scopeObject.on("mouseup.imageMapper", function(event) {
+                if (!$(event.target).hasClass(opts.drawHelperClass) && !self._clickedIgnoredItem(event) && !self.dragged) {
                     self._setInactive($("." + opts.drawHelperClass + ".active"));
                     self.active = null;
                     opts.drawHelperSpecialClass = "";
@@ -134,6 +139,9 @@
                 }
             });
             self._setExistingData();
+        },
+        _clickedIgnoredItem: function(event) {
+            return $(event.target).hasClass(this.options.clickIgnoreClass);
         },
         _setExistingData: function() {
             var self = this, opts = self.options, extra;
@@ -203,13 +211,21 @@
             }
         },
         destroy: function() {
-            var self = this, $img = this.element.find("img");
+            var self = this, $img = this.element.children("img");
             $(document).off(".imageMapper");
+            self.options.scopeObject.off(".imageMapper");
             $img.css({
                 position: "",
                 "z-index": "",
                 "pointer-events": ""
             });
+            if (this.options.percentageValues) {
+                this.element.children("img").css({
+                    width: "",
+                    "max-width": "",
+                    height: ""
+                });
+            }
             if ("" == $img.attr("style")) {
                 $img.removeAttr("style");
             }
@@ -231,6 +247,9 @@
             this.dragged = false;
             this.active = null;
             this._mouseDestroy();
+            delete this.container;
+            delete this.helper;
+            delete this.active;
             this._trigger("destroy");
             $.Widget.prototype.destroy.apply(this, arguments);
         },
@@ -288,8 +307,8 @@
                 self._resetAll(self.helper);
             } else {
                 mapItem = self.helper.clone().appendTo(self.container);
-                mapItem.removeClass("drag").addClass(opts.drawHelperSpecialClass + " drop");
                 self._setActive(mapItem);
+                mapItem.removeClass("drag").addClass(opts.drawHelperSpecialClass + " drop");
                 if (opts.drawHelperSpecialClass !== "") {
                     special = opts.drawHelperSpecialClass;
                     mapItem.attr("data-special", special);
