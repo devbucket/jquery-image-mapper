@@ -1,9 +1,9 @@
-/* jQuery Image Mapper v0.6.4 - https://github.com/devbucket/jquery-image-mapper
+/* jQuery Image Mapper v0.6.8 - https://github.com/devbucket/jquery-image-mapper
  * Draw image maps the old fashioned way just with HTML, jQuery and jQuery UI.
  * 
  * Copyright (c) 2015 Florian Mueller
  * Licensed under the GPL license
- * 2015-07-08
+ * 2015-07-10
  */
 
 (function ($) {
@@ -67,6 +67,7 @@
 			scopeObject: $(document),
 			data: [],
 			clickIgnoreClass: 'ui-image-mapper-click-ignore',
+			blockDeleteByKey: false,
 			handleCollision: true,
 			collisionTolerance: 0,
 			autoHideHandles: true,
@@ -88,6 +89,9 @@
 			borderDrawErrorSize: '1px',
 			borderDrawErrorStyle: 'dotted',
 			borderDrawErrorColor: '#ff0000',
+			borderDrawWarningSize: '1px',
+			borderDrawWarningStyle: 'dotted',
+			borderDrawWarningColor: '#ffc000',
 			borderSize: '1px',
 			borderStyle: 'solid',
 			borderColor: '#69bce2',
@@ -97,11 +101,16 @@
 			borderActiveErrorSize: '1px',
 			borderActiveErrorStyle: 'solid',
 			borderActiveErrorColor: '#ff0000',
+			borderActiveWarningSize: '1px',
+			borderActiveWarningStyle: 'solid',
+			borderActiveWarningColor: '#ffc000',
 			backgroundDrawColor: 'rgba(0,174,255,0)',
 			backgroundDrawErrorColor: 'rgba(255,0,0,0.1)',
 			backgroundColor: 'rgba(0,174,255,0.1)',
+			backgroundWarningColor: 'rgba(255,192,0,0.1)',
 			backgroundActiveColor: 'rgba(0,174,255,0.25)',
-			backgroundActiveErrorColor: 'rgba(255,0,0,0.35)'
+			backgroundActiveErrorColor: 'rgba(255,0,0,0.35)',
+			backgroundActiveWarningColor: 'rgba(255,192,0,0.35)'
 		},
 
 		/**
@@ -171,7 +180,7 @@
 
 			// Delete the active helper on pressing delete or backspace
 			$(document).on('keyup.imageMapper', function (event) {
-				if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
+				if ((event.keyCode === 8 || event.keyCode === 46) && self.active && !opts.blockDeleteByKey) {
 					event.preventDefault();
 					self._deleteActive(event);
 				}
@@ -179,7 +188,9 @@
 
 			// Prevent default behavior of the backspace and delete button
 			$(document).on('keydown.imageMapper', function (event) {
-				if ((event.keyCode === 8 || event.keyCode === 46) && self.active) {
+				self._trigger('deleteMap');
+
+				if ((event.keyCode === 8 || event.keyCode === 46) && self.active && !opts.blockDeleteByKey) {
 					event.preventDefault();
 				}
 			});
@@ -330,6 +341,23 @@
 				$.extend(this.mapItems[id], data);
 				this._triggerUpdateItems(null);
 			}
+		},
+
+		/**
+		 * Set an element to warning mode.
+		 *
+		 * @param element
+		 */
+		setWarning: function (element) {
+			this._setWarning('#' + element.id);
+		},
+
+		/**
+		 * Reset an element from warning mode.
+		 * @param element
+		 */
+		resetWarning: function (element) {
+			this._resetErrorOrWarning('#' + element.id);
 		},
 
 		/**
@@ -581,7 +609,7 @@
 				stop: function (ev, ui) {
 					if (!self._colliding()) {
 						var itemId = parseInt($(ui.helper).attr('data-id'), 10) - 1;
-						self._resetError(ui.helper);
+						self._resetErrorOrWarning(ui.helper);
 						self.mapItems[itemId].left = self._parseValue(ui.position.left, self.DIRECTION_HORIZONTAL);
 						self.mapItems[itemId].top = self._parseValue(ui.position.top, self.DIRECTION_VERTICAL);
 						self._triggerUpdateItems(ev);
@@ -687,6 +715,10 @@
 				'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
 				'background-color': opts.backgroundActiveColor
 			}).addClass('active');
+
+			if ($(el).hasClass('warning')) {
+				this._setWarning(el);
+			}
 		},
 
 		/**
@@ -702,6 +734,31 @@
 				'border': opts.borderSize + ' ' + opts.borderStyle + ' ' + opts.borderColor,
 				'background-color': opts.backgroundColor
 			}).removeClass('active');
+
+			if ($(el).hasClass('warning')) {
+				this._setWarning(el);
+			}
+		},
+
+		/**
+		 * Set the element to warning state.
+		 *
+		 * @param el
+		 */
+		_setWarning: function (el) {
+			var opts = this.options;
+
+			if ($(el).hasClass('active')) {
+				$(el).css({
+					'border': opts.borderActiveWarningSize + ' ' + opts.borderActiveWarningStyle + ' ' + opts.borderActiveWarningColor,
+					'background-color': opts.backgroundActiveWarningColor
+				}).addClass('warning');
+			} else {
+				$(el).css({
+					'border': opts.borderDrawWarningSize + ' ' + opts.borderDrawWarningStyle + ' ' + opts.borderDrawWarningColor,
+					'background-color': opts.backgroundWarningColor
+				}).addClass('warning');
+			}
 		},
 
 		/**
@@ -723,14 +780,21 @@
 		 *
 		 * @param el
 		 */
-		_resetError: function (el) {
+		_resetErrorOrWarning: function (el) {
 			var opts = this.options;
 
-			$(el).css({
-				'z-index': opts.zIndexActive,
-				'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
-				'background-color': opts.backgroundActiveColor
-			}).removeClass('error');
+			if ($(el).hasClass('active')) {
+				$(el).css({
+					'z-index': opts.zIndexActive,
+					'border': opts.borderActiveSize + ' ' + opts.borderActiveStyle + ' ' + opts.borderActiveColor,
+					'background-color': opts.backgroundActiveColor
+				}).removeClass('error warning');
+			} else {
+				$(el).css({
+					'border': opts.borderSize + ' ' + opts.borderStyle + ' ' + opts.borderColor,
+					'background-color': opts.backgroundColor
+				}).removeClass('error warning');
+			}
 		},
 
 		/**
